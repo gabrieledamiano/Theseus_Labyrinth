@@ -146,7 +146,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;GLM_ENABLE_EXPERIMENTAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -163,6 +163,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="anim_model.fs" />
+    <None Include="anim_model.vs" />
     <None Include="blending.fs" />
     <None Include="blending.vs" />
     <None Include="fragment_shader.fs" />
@@ -170,6 +172,8 @@
     <None Include="lamp.vs" />
     <None Include="menu.fs" />
     <None Include="menu.vs" />
+    <None Include="model.fs" />
+    <None Include="model.vs" />
     <None Include="model_loading.fs" />
     <None Include="model_loading.vs" />
     <None Include="packages.config" />
@@ -180,15 +184,22 @@
     <None Include="vertex_shader.vs" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="animation.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="animation.h" />
+    <ClInclude Include="animator.h" />
+    <ClInclude Include="assimp_glm_helpers.h" />
+    <ClInclude Include="bone.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="mesh.h" />
+    <ClInclude Include="minotaur.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="render_text.h" />
     <ClInclude Include="shader_m.h" />
+    <ClInclude Include="sword.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

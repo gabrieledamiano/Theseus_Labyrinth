@@ -10,4 +10,3 @@ void main()
     FragColor = texture(menuTexture, TexCoords);
 }
 
-//dddsdsd

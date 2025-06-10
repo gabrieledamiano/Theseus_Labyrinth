@@ -58,12 +58,27 @@
     <None Include="menu.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="model.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="model.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="anim_model.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="anim_model.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="animation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -81,6 +96,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="render_text.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sword.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="animation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="animator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bone.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="assimp_glm_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="minotaur.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
