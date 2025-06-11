@@ -50,6 +50,11 @@ const unsigned int SCR_HEIGHT = 1080;
 
 bool isGameActive = false;
 
+// --- SALUTE GIOCATORE: Variabili per la salute ---
+float playerHealth = 100.0f;
+const float PLAYER_MAX_HEALTH = 100.0f;
+bool isPlayerDead = false;
+
 const int MAP_SIZE_ROWS = 40;
 const int MAP_SIZE_COLS = 20;
 const int MAZE_WIDTH = MAP_SIZE_COLS;
@@ -141,6 +146,7 @@ void setupMazeGeometryVAOs();
 void setupWindowVAO();
 void setupMenuVAO();
 unsigned int loadtexture(const std::string& path, bool clampToEdge = false);
+void PlayerTakeDamage(float damage); // --- SALUTE GIOCATORE ---
 
 inline unsigned int TextureFromFile(const char* path, const string& directory, bool gamma)
 {
@@ -265,7 +271,10 @@ int main() {
 
         if (isGameActive)
         {
-            sword.Update(deltaTime);
+            if (!isPlayerDead) {
+                sword.Update(deltaTime);
+            }
+            //sword.Update(deltaTime);
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
             glm::mat4 view = camera.GetViewMatrix();
@@ -328,11 +337,26 @@ int main() {
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
 
-            sword.Draw(modelShader, camera);
+            if (!isPlayerDead) {
+                sword.Draw(modelShader, camera, projection, view);
+            }
+            //sword.Draw(modelShader, camera, projection, view);
 
+            // Render HUD
             glDisable(GL_DEPTH_TEST);
-            std::string itemsInfo = "Oggetti Raccolti: " + std::to_string(itemsFound) + "/3";
+
+            std::string itemsInfo = "Oggetti: " + std::to_string(itemsFound) + "/3";
             RenderText(itemsInfo.c_str(), 10.0f, SCR_HEIGHT - 40.0f, 0.7f, glm::vec3(1.0, 1.0, 0.0));
+
+            // --- SALUTE GIOCATORE: Mostra la salute sullo schermo ---
+            std::string playerHealthText = "Salute: " + std::to_string((int)playerHealth);
+            RenderText(playerHealthText.c_str(), 10.0f, SCR_HEIGHT - 70.0f, 0.8f, glm::vec3(0.5, 1.0, 0.5f));
+
+            // --- SALUTE GIOCATORE: Mostra la schermata di Game Over ---
+            if (isPlayerDead) {
+                RenderText("SEI MORTO", SCR_WIDTH / 2.0f - 150.0f, SCR_HEIGHT / 2.0f, 2.0f, glm::vec3(1.0, 0.1, 0.1));
+                RenderText("Premi ESC per uscire", SCR_WIDTH / 2.0f - 120.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(0.8, 0.8, 0.8));
+            }
             glEnable(GL_DEPTH_TEST);
         }
         else
@@ -365,6 +389,22 @@ int main() {
 
     glfwTerminate();
     return 0;
+}
+
+
+// --- SALUTE GIOCATORE: Funzione per gestire il danno ---
+void PlayerTakeDamage(float damage) {
+    if (isPlayerDead) return; // Non può subire danni se è già morto
+
+    playerHealth -= damage;
+    cout << "Player health: " << playerHealth << endl; // Messaggio di debug
+
+    if (playerHealth <= 0) {
+        playerHealth = 0;
+        isPlayerDead = true;
+        // Potresti fermare la musica di gioco e far partire un suono di morte
+        SoundEngine->stopAllSounds();
+    }
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
