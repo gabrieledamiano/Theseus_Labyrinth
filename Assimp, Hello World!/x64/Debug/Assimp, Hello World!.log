@@ -1,8 +1,10 @@
-﻿  main.cpp
-D:\università\Magistrale\2° Anno\Grafica Avanzata\TesLib\Assimp, Hello World!\shader_m.h(49,40): warning C4101: 'e': variabile locale senza riferimenti
-  (compilazione del file di origine 'main.cpp')
-  
-D:\università\Magistrale\2° Anno\Grafica Avanzata\TesLib\Assimp, Hello World!\render_text.h(131,1): warning C4715: 'initRenderText': non tutti i percorsi di controllo restituiscono un valore
+﻿  glad.c
+  main.cpp
+F:\Rep Git\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
+F:\Rep Git\Theseus\Assimp, Hello World!\main.cpp(686,18): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+F:\Rep Git\Theseus\Assimp, Hello World!\main.cpp(687,18): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+F:\Rep Git\Theseus\Assimp, Hello World!\main.cpp(688,18): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+F:\Rep Git\Theseus\Assimp, Hello World!\render_text.h(131): warning C4715: 'initRenderText': non tutti i percorsi di controllo restituiscono un valore
 freetype.lib(ftinit.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftinit.obj)' o in ''; oggetto collegato senza informazioni di debug
 freetype.lib(ftbase.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftbase.obj)' o in ''; oggetto collegato senza informazioni di debug
 freetype.lib(autofit.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(autofit.obj)' o in ''; oggetto collegato senza informazioni di debug
@@ -27,7 +29,7 @@ freetype.lib(ftlzw.obj) : warning LNK4099: impossibile trovare il PDB '' con 'fr
 freetype.lib(ftbitmap.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftbitmap.obj)' o in ''; oggetto collegato senza informazioni di debug
 freetype.lib(ftdebug.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftdebug.obj)' o in ''; oggetto collegato senza informazioni di debug
 LINK : warning LNK4098: la libreria predefinita 'LIBCMT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
-  Assimp, Hello World!.vcxproj -> D:\università\Magistrale\2° Anno\Grafica Avanzata\TesLib\x64\Debug\Assimp, Hello World!.exe
+  Assimp, Hello World!.vcxproj -> F:\Rep Git\Theseus\x64\Debug\Assimp, Hello World!.exe
   Impossibile trovare il file specificato.
-D:\Program Files\Microsoft Visual Studio\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(166,5): error MSB3073: uscita dal comando "copy /Y "D:\università\Magistrale\2° Anno\Grafica Avanzata\TesLib\Assimp, Hello World!\x64\debug\assimp-vc142-mtd.dll" "D:\università\Magistrale\2° Anno\Grafica Avanzata\TesLib\x64\Debug\"
-D:\Program Files\Microsoft Visual Studio\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(166,5): error MSB3073: :VCEnd" con codice 1.
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(160,5): error MSB3073: uscita dal comando "copy /Y "F:\Rep Git\Theseus\Assimp, Hello World!\x64\debug\assimp-vc142-mtd.dll" "F:\Rep Git\Theseus\x64\Debug\"
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(160,5): error MSB3073: :VCEnd" con codice 1.

@@ -120,7 +120,9 @@ int itemsFound = 0;
 unsigned int VBO_cube_lit, VAO_walls, VAO_floor, VAO_ceiling;
 unsigned int VAO_lamp;
 unsigned int VAO_window, VBO_window;
-unsigned int textureWall, textureFloor, textureCeiling, textureSpecularMaze;
+// --- MODIFICATO: Aggiunte texture per normal map ---
+unsigned int textureWall, textureFloor, textureCeiling;
+unsigned int textureNormalWall, textureNormalFloor, textureNormalCeiling; // Nuove texture per normal map
 unsigned int textureWindow;
 
 // --- MODIFICA: Aggiunti VAO e texture per il menu ---
@@ -130,9 +132,9 @@ unsigned int menuTexture;
 const int NR_SPOT_LIGHTS = 20;
 glm::vec3 spotLightPositions[NR_SPOT_LIGHTS];
 glm::vec3 spotLightDirection = glm::vec3(0.0f, -1.0f, 0.0f);
-glm::vec3 spotLightAmbient = glm::vec3(0.4f, 0.2f, 0.1f);
-glm::vec3 spotLightSpecular = glm::vec3(0.4f, 0.0f, 0.0f);
-glm::vec3 spotLightDiffuse = glm::vec3(0.6f, 0.0f, 0.0f);
+glm::vec3 spotLightAmbient = glm::vec3(0.4f, 0.3f, 0.3f);
+glm::vec3 spotLightSpecular = glm::vec3(0.4f, 0.3f, 0.3f);
+glm::vec3 spotLightDiffuse = glm::vec3(0.6f, 0.2f, 0.3f);
 float spotLightConstant = 1.0f;
 float spotLightLinear = 0.07f;
 float spotLightQuadratic = 0.017f;
@@ -146,6 +148,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 void loadMazeFromMap();
 bool checkCollision(glm::vec3 checkPos);
+// --- MODIFICATO: setupMazeGeometryVAOs ora calcola tangenti/bitangenti ---
 void setupMazeGeometryVAOs();
 void setupWindowVAO();
 void setupMenuVAO();
@@ -196,12 +199,12 @@ int main() {
     float lightHeight = WALL_HEIGHT - 0.1f;
     spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
     /* if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(8.73f, lightHeight, 5.30f);
-     if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(10.16f, lightHeight, 14.29f);
-     if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(8.04f, lightHeight, 23.15f);
-     if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(24.24f, lightHeight, 2.99f);
-     if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(14.11f, lightHeight, 14.81f);
-     if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(23.33f, lightHeight, 14.56f);
-     if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(26.92f, lightHeight, 29.50f);*/
+       if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(10.16f, lightHeight, 14.29f);
+       if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(8.04f, lightHeight, 23.15f);
+       if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(24.24f, lightHeight, 2.99f);
+       if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(14.11f, lightHeight, 14.81f);
+       if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(23.33f, lightHeight, 14.56f);
+       if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(26.92f, lightHeight, 29.50f);*/
     if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(24.00f, lightHeight, 2.00f);
     if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(1.77f, lightHeight, 19.19f);
     if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(10.15f, lightHeight, 14.72f);
@@ -213,17 +216,22 @@ int main() {
     windowPositions.push_back(glm::vec3(29.25f, windowY, 12.72f));
     windowPositions.push_back(glm::vec3(29.25f, windowY, 31.29f));
 
-    textureWall = loadtexture("resources/textures/wall_diffuse.jpg");
+    // --- MODIFICATO: Caricamento texture normal map ---
+    textureWall = loadtexture("resources/textures/wall_lab.jpg");
+    textureNormalWall = loadtexture("resources/textures/wall_lab_normal.jpg"); // Nuova normal map per le mura
     textureFloor = loadtexture("resources/textures/floor_diffuse.jpg");
+    textureNormalFloor = loadtexture("resources/textures/floor_normal.jpg"); // Nuova normal map per il pavimento
     textureCeiling = loadtexture("resources/textures/ceiling.jpg");
-    //textureSpecularMaze = loadtexture("resources/textures/normal2.jpg");
+    textureNormalCeiling = loadtexture("resources/textures/ceiling_normal.png"); // Nuova normal map per il soffitto
     textureWindow = loadtexture("resources/textures/window.png", true);
 
     // --- MODIFICA: Caricamento texture e setup VAO del menu ---
     menuTexture = loadtexture("resources/textures/menu.jpg", false);
     setupMenuVAO();
 
-    if (textureWall == 0 || textureFloor == 0 || textureCeiling == 0 /*|| textureSpecularMaze == 0*/ || textureWindow == 0 || menuTexture == 0) {
+    if (textureWall == 0 || textureFloor == 0 || textureCeiling == 0 ||
+        textureNormalWall == 0 || textureNormalFloor == 0 || textureNormalCeiling == 0 || // Controllo delle nuove texture
+        textureWindow == 0 || menuTexture == 0) {
         std::cerr << "Errore caricamento texture." << std::endl;
         glfwTerminate(); return -1;
     }
@@ -242,7 +250,8 @@ int main() {
 
     mazeShader.use();
     mazeShader.setInt("material.diffuse", 0);
-    mazeShader.setInt("material.specular", 1);
+    mazeShader.setInt("material.specular", 1); // Useremo un specular map generico o un colore qui se non hai una specular map separata.
+    mazeShader.setInt("material.normalMap", 2); // Il normal map sarà sulla texture unit 2
     mazeShader.setFloat("material.shininess", mazeShininess);
     windowShader.use();
     windowShader.setInt("texture1", 0);
@@ -287,17 +296,23 @@ int main() {
                 mazeShader.setFloat(lightUni + ".quadratic", spotLightQuadratic);
             }
 
+            // Render Floor
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, textureFloor);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, textureNormalFloor); // Bind normal map for floor
             glBindVertexArray(VAO_floor);
             mazeShader.setMat4("model", glm::mat4(1.0f));
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+            // Render Ceiling
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, textureCeiling);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, textureNormalCeiling); // Bind normal map for ceiling
             glBindVertexArray(VAO_ceiling);
             mazeShader.setMat4("model", glm::mat4(1.0f));
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+            // Render Walls
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, textureWall);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, textureNormalWall); // Bind normal map for walls
             glBindVertexArray(VAO_walls);
             for (int y = 0; y < MAZE_HEIGHT; ++y) {
                 for (int x = 0; x < MAZE_WIDTH; ++x) {
@@ -311,6 +326,8 @@ int main() {
                 }
             }
             glBindVertexArray(0);
+
+            // ... (lamp shader and window shader rendering remain the same) ...
 
             lampShader.use();
             lampShader.setMat4("projection", projection);
@@ -382,7 +399,9 @@ int main() {
     glDeleteTextures(1, &textureWall);
     glDeleteTextures(1, &textureFloor);
     glDeleteTextures(1, &textureCeiling);
-   // glDeleteTextures(1, &textureSpecularMaze);
+    glDeleteTextures(1, &textureNormalWall);    // Pulizia
+    glDeleteTextures(1, &textureNormalFloor);   // Pulizia
+    glDeleteTextures(1, &textureNormalCeiling); // Pulizia
     glDeleteTextures(1, &textureWindow);
     // --- MODIFICA: Pulizia risorse menu ---
     glDeleteVertexArrays(1, &menuVAO);
@@ -456,7 +475,7 @@ void processInput(GLFWwindow* window) {
             std::cout << "Pos Camera: X=" << camera.Position.x << " Z=" << camera.Position.z << std::endl;
             int camGridX = static_cast<int>(floor(camera.Position.x / CELL_SIZE));
             int camGridZ = static_cast<int>(floor(camera.Position.z / CELL_SIZE));
-            std::cout << "     -> Cella circa: (" << camGridX << ", " << camGridZ << ")" << std::endl;
+            std::cout << "      -> Cella circa: (" << camGridX << ", " << camGridZ << ")" << std::endl;
         }
 
         glm::vec3 attemptedPosition = camera.Position;
@@ -504,7 +523,7 @@ bool checkCollision(glm::vec3 checkPos) {
     auto isCellWall = [&](int x, int z) {
         if (x < 0 || x >= MAZE_WIDTH || z < 0 || z >= MAZE_HEIGHT) return true;
         return maze[z][x].wall;
-        };
+    };
 
     if (isCellWall(gridX_min, gridZ_min)) return true;
     if (isCellWall(gridX_max, gridZ_min)) return true;
@@ -514,49 +533,59 @@ bool checkCollision(glm::vec3 checkPos) {
     return false;
 }
 
+// --- MODIFICATO: setupMazeGeometryVAOs per includere tangenti e bitangenti ---
 void setupMazeGeometryVAOs() {
+    // Vertices for a cube, now with Pos, Normal, TexCoords, Tangent, Bitangent
+    // Each vertex now has 3+3+2+3+3 = 14 floats
     float cubeVertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,
+        // positions            // normals           // texcoords // tangents           // bitangents
+        // Back face
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // BL
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // BR
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // TR
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // TR
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // TL
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // BL
 
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,
+        // Front face
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // BL
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // BR
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // TR
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // TR
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // TL
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f, // BL
 
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
+        // Left face
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,  0.0f, 0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // TL
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // BL
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // BR
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // BR
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,  0.0f, 0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // TR
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,  0.0f, 0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // TL
 
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
+        // Right face
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f, // TR
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f, // TL
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f, // BL
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f, // BL
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f, // BR
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f, 0.0f, // TR
 
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f,
+         // Bottom face
+         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, // BL
+          0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, // BR
+          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, // TR
+          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, // TR
+         -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, // TL
+         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, // BL
 
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f
+         // Top face
+         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, -1.0f, // BL
+          0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, -1.0f, // BR
+          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, -1.0f, // TR
+          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, -1.0f, // TR
+         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, -1.0f, // TL
+         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f, -1.0f  // BL
     };
     glGenBuffers(1, &VBO_cube_lit);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
@@ -565,12 +594,21 @@ void setupMazeGeometryVAOs() {
     glGenVertexArrays(1, &VAO_walls);
     glBindVertexArray(VAO_walls);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    // Position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    // Normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    // TexCoords
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+    // Tangent
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    // Bitangent
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
     glBindVertexArray(0);
 
     float mazeW = (float)MAZE_WIDTH * CELL_SIZE;
@@ -578,11 +616,16 @@ void setupMazeGeometryVAOs() {
     float textureRepeatX = mazeW / CELL_SIZE;
     float textureRepeatZ = mazeD / CELL_SIZE;
 
+    // Floor vertices (Positions, Normals, TexCoords, Tangent, Bitangent)
+    // Normal for floor is (0, 1, 0) in model space (upwards)
+    // Tangent for floor: (1, 0, 0)
+    // Bitangent for floor: (0, 0, 1)
     float floorVertices[] = {
-        mazeW, 0.0f, mazeD, 0.0f, 1.0f, 0.0f, textureRepeatX, textureRepeatZ,
-        mazeW, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f, textureRepeatX, 0.0f,
-        0.0f,  0.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f,  0.0f, mazeD, 0.0f, 1.0f, 0.0f, 0.0f, textureRepeatZ
+        // positions            // normals         // texcoords        // tangents      // bitangents
+        mazeW, 0.0f, mazeD,     0.0f, 1.0f, 0.0f,   textureRepeatX, textureRepeatZ,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f, // TR
+        mazeW, 0.0f, 0.0f,      0.0f, 1.0f, 0.0f,   textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f, // BR
+        0.0f,  0.0f, 0.0f,      0.0f, 1.0f, 0.0f,   0.0f,           0.0f,           1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f, // BL
+        0.0f,  0.0f, mazeD,     0.0f, 1.0f, 0.0f,   0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f  // TL
     };
     unsigned int planeIndices[] = { 0, 1, 3, 1, 2, 3 };
     unsigned int VBO_floor, EBO_floor;
@@ -594,21 +637,35 @@ void setupMazeGeometryVAOs() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_floor);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    // Position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    // Normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    // TexCoords
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+    // Tangent
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    // Bitangent
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
     glBindVertexArray(0);
 
+    // Ceiling vertices (Positions, Normals, TexCoords, Tangent, Bitangent)
+    // Normal for ceiling is (0, -1, 0) in model space (downwards)
+    // Tangent for ceiling: (1, 0, 0) (along X)
+    // Bitangent for ceiling: (0, 0, -1) (along -Z, because normal is -Y and tangent is X: X cross -Y = -Z)
     float ceilingVertices[] = {
-        mazeW, WALL_HEIGHT, mazeD, 0.0f, -1.0f, 0.0f, textureRepeatX, textureRepeatZ,
-        0.0f,  WALL_HEIGHT, mazeD, 0.0f, -1.0f, 0.0f, 0.0f, textureRepeatZ,
-        0.0f,  WALL_HEIGHT, 0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-        mazeW, WALL_HEIGHT, 0.0f,  0.0f, -1.0f, 0.0f, textureRepeatX, 0.0f
+        // positions                 // normals          // texcoords        // tangents      // bitangents
+        mazeW, WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,   textureRepeatX, textureRepeatZ,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f, -1.0f, // TR
+        0.0f,  WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,   0.0f,           textureRepeatZ,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f, -1.0f, // TL
+        0.0f,  WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,   0.0f,           0.0f,            1.0f, 0.0f, 0.0f,  0.0f, 0.0f, -1.0f, // BL
+        mazeW, WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,   textureRepeatX, 0.0f,            1.0f, 0.0f, 0.0f,  0.0f, 0.0f, -1.0f  // BR
     };
-    unsigned int ceilingIndices[] = { 0, 3, 1, 1, 3, 2 };
+    unsigned int ceilingIndices[] = { 0, 1, 3, 1, 2, 3 }; // Adjusted indices for a different winding order if needed
     unsigned int VBO_ceiling, EBO_ceiling;
     glGenVertexArrays(1, &VAO_ceiling);
     glGenBuffers(1, &VBO_ceiling);
@@ -618,30 +675,41 @@ void setupMazeGeometryVAOs() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(ceilingVertices), ceilingVertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_ceiling);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ceilingIndices), ceilingIndices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    // Position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    // Normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    // TexCoords
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+    // Tangent
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    // Bitangent
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
     glBindVertexArray(0);
 
     glGenVertexArrays(1, &VAO_lamp);
     glBindVertexArray(VAO_lamp);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0); // Only position for lamp
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 }
 
 void setupWindowVAO() {
     float transparentVertices[] = {
-          0.5f,  0.5f,  0.0f,  1.0f, 1.0f,
-         -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         -0.5f, -0.5f,  0.0f,  0.0f, 0.0f,
-         -0.5f, -0.5f,  0.0f,  0.0f, 0.0f,
-          0.5f, -0.5f,  0.0f,  1.0f, 0.0f,
-          0.5f,  0.5f,  0.0f,  1.0f, 1.0f
+        // positions        // texCoords
+         0.5f,  0.5f,  0.0f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.0f,  0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.0f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.0f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.0f,  1.0f, 1.0f
     };
     glGenVertexArrays(1, &VAO_window);
     glGenBuffers(1, &VBO_window);
@@ -658,7 +726,7 @@ void setupWindowVAO() {
 // --- MODIFICA: Nuova funzione per creare la geometria del menu ---
 void setupMenuVAO() {
     float menuVertices[] = {
-        // positions   // texCoords
+        // positions  // texCoords
         -1.0f,  1.0f,  0.0f, 1.0f,
         -1.0f, -1.0f,  0.0f, 0.0f,
          1.0f, -1.0f,  1.0f, 0.0f,

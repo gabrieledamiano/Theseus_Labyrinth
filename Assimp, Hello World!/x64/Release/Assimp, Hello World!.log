@@ -1,12 +1,10 @@
 ﻿  main.cpp
-D:\università\Magistrale\2° Anno\Grafica Avanzata\TesLib\Assimp, Hello World!\shader_m.h(49,40): warning C4101: 'e': variabile locale senza riferimenti
-  (compilazione del file di origine 'main.cpp')
-  
+F:\Rep Git\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
 LINK : warning LNK4098: la libreria predefinita 'LIBCMT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
   Generazione codice in corso...
-  0 of 841 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+F:\Rep Git\Theseus\Assimp, Hello World!\render_text.h(131): warning C4715: 'initRenderText': non tutti i percorsi di controllo restituiscono un valore
+  All 838 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Generazione codice terminata
 freetype.lib(ftbase.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftbase.obj)' o in ''; oggetto collegato senza informazioni di debug
 freetype.lib(ftinit.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftinit.obj)' o in ''; oggetto collegato senza informazioni di debug
@@ -31,5 +29,5 @@ freetype.lib(ftgzip.obj) : warning LNK4099: impossibile trovare il PDB '' con 'f
 freetype.lib(ftlzw.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftlzw.obj)' o in ''; oggetto collegato senza informazioni di debug
 freetype.lib(ftbitmap.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftbitmap.obj)' o in ''; oggetto collegato senza informazioni di debug
 freetype.lib(ftdebug.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftdebug.obj)' o in ''; oggetto collegato senza informazioni di debug
-  Assimp, Hello World!.vcxproj -> D:\università\Magistrale\2° Anno\Grafica Avanzata\TesLib\x64\Release\Assimp, Hello World!.exe
+  Assimp, Hello World!.vcxproj -> F:\Rep Git\Theseus\x64\Release\Assimp, Hello World!.exe
           1 file copiati.
