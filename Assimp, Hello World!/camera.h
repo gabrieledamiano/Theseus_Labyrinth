@@ -51,13 +51,13 @@ public:
         updateCameraVectors();
     }
 
-    glm::mat4 GetViewMatrix() {
+    // Aggiunto 'const' alla fine della funzione
+    glm::mat4 GetViewMatrix() const {
         return glm::lookAt(Position, Position + Front, Up);
     }
 
     void ProcessKeyboard(Camera_Movement direction, float deltaTime) {
         float velocity = MovementSpeed * deltaTime;
-        // Invece di modificare direttamente Position, calcoliamo il movimento desiderato
         glm::vec3 moveDirection(0.0f);
 
         if (direction == FORWARD)
@@ -69,9 +69,7 @@ public:
         if (direction == RIGHT)
             moveDirection = Right;
 
-        // Rimuovi la componente Y dal vettore di movimento per mantenere l'altezza fissa
         moveDirection.y = 0.0f;
-        // Normalizza il vettore per assicurarti che la velocità sia costante dopo la rimozione della componente Y
         if (glm::length(moveDirection) > 0.0f) {
             moveDirection = glm::normalize(moveDirection);
         }
