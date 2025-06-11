@@ -120,7 +120,7 @@ int itemsFound = 0;
 unsigned int VBO_cube_lit, VAO_walls, VAO_floor, VAO_ceiling;
 unsigned int VAO_lamp, VAO_window, VBO_window, menuVAO, menuVBO;
 unsigned int textureWall, textureFloor, textureCeiling, textureWindow, menuTexture;
-unsigned int wallNormalMap; // Variabili per Normal Mapping
+
 
 const int NR_SPOT_LIGHTS = 12;
 glm::vec3 spotLightPositions[NR_SPOT_LIGHTS];
@@ -243,7 +243,6 @@ int main() {
     if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(7.92f, lightHeight, 3.38f);
 
     textureWall = loadtexture("resources/textures/lab_wall_diffuse.jpg", false);
-    wallNormalMap = loadtexture("resources/textures/lab_wall_normal.jpg", true);
     textureFloor = loadtexture("resources/textures/floor_diffuse.jpg", false);
     textureCeiling = loadtexture("resources/textures/ceiling.jpg", false);
     menuTexture = loadtexture("resources/textures/menu.jpg", false);
