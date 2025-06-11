@@ -120,6 +120,7 @@ int itemsFound = 0;
 unsigned int VBO_cube_lit, VAO_walls, VAO_floor, VAO_ceiling;
 unsigned int VAO_lamp, VAO_window, VBO_window, menuVAO, menuVBO;
 unsigned int textureWall, textureFloor, textureCeiling, textureWindow, menuTexture;
+unsigned int wallNormalMap; // Variabili per Normal Mapping
 
 const int NR_SPOT_LIGHTS = 12;
 glm::vec3 spotLightPositions[NR_SPOT_LIGHTS];
@@ -199,7 +200,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Labirinto del Minotauro", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Theseus' Labyrinth", NULL, NULL);
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -218,6 +219,7 @@ int main() {
 
     Shader modelShader("model.vs", "model.fs");
     Shader mazeShader("spot_light.vs", "spot_light.fs");
+    Shader normalMappingShader("normal_mapping.vs", "normal_mapping.fs"); // PER NORMAL MAPPING
     Shader lampShader("lamp.vs", "lamp.fs");
     Shader menuShader("menu.vs", "menu.fs");
 
@@ -240,7 +242,8 @@ int main() {
     if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(10.15f, lightHeight, 14.72f);
     if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(7.92f, lightHeight, 3.38f);
 
-    textureWall = loadtexture("resources/textures/wall_diffuse.jpg", false);
+    textureWall = loadtexture("resources/textures/lab_wall_diffuse.jpg", false);
+    wallNormalMap = loadtexture("resources/textures/lab_wall_normal.jpg", true);
     textureFloor = loadtexture("resources/textures/floor_diffuse.jpg", false);
     textureCeiling = loadtexture("resources/textures/ceiling.jpg", false);
     menuTexture = loadtexture("resources/textures/menu.jpg", false);
@@ -253,6 +256,7 @@ int main() {
     mazeShader.use();
     mazeShader.setInt("material.diffuse", 0);
     mazeShader.setFloat("material.shininess", mazeShininess);
+
 
     if (mainTheme) {
         SoundEngine->play2D(mainTheme, true);

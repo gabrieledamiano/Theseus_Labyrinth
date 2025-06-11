@@ -176,6 +176,8 @@
     <None Include="model.vs" />
     <None Include="model_loading.fs" />
     <None Include="model_loading.vs" />
+    <None Include="normal_mapping.fs" />
+    <None Include="normal_mapping.vs" />
     <None Include="packages.config" />
     <None Include="spot_light.fs" />
     <None Include="spot_light.vs" />
