@@ -19,12 +19,15 @@
 #include <map>
 #include <irrklang/irrKlang.h>
 #include "render_text.h"
+#include "cell.h"
 
 #pragma comment(lib, "irrKlang.lib")
 
 #include "shader_m.h"
 #include "camera.h"
 #include "sword.h"
+#include "animator.h" // Assicurati che sia incluso
+#include "minotaur.h" // Includiamo il nostro minotauro
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -35,7 +38,7 @@ using namespace irrklang;
 
 struct GameContext {
     Sword* sword;
-    //Minotaur* minotaur;
+    Minotaur* minotaur;
     Camera* camera;
     // In futuro potrai aggiungere altri puntatori qui
 };
@@ -44,6 +47,8 @@ struct GameContext {
 ISoundEngine* SoundEngine = createIrrKlangDevice();
 ISoundSource* mainTheme = SoundEngine->addSoundSourceFromFile("resources/main.mp3");
 ISoundSource* attackSound = SoundEngine->addSoundSourceFromFile("resources/sword_swing.mp3");
+ISoundSource* minotaurHitSound = SoundEngine->addSoundSourceFromFile("resources/hit.mp3");
+ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resources/death.mp3");
 
 const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
@@ -71,7 +76,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 { 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
 { 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 },
 { 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-{ 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+{ 1, 2, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
 { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
 { 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
 { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
@@ -107,7 +112,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
-struct Cell { bool visited = false; bool wall = true; };
+//struct Cell { bool visited = false; bool wall = true; };
 std::vector<std::vector<Cell>> maze(MAZE_HEIGHT, std::vector<Cell>(MAZE_WIDTH));
 Camera camera(glm::vec3(0.0f, CAMERA_HEIGHT, 0.0f));
 float lastX = SCR_WIDTH / 2.0f;
@@ -141,8 +146,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void loadMazeFromMap();
-bool checkCollision(glm::vec3 checkPos);
+//void loadMazeFromMap();
+void loadLevelData(glm::vec3& minotaurSpawnPos);
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur);
 void setupMazeGeometryVAOs();
 void setupWindowVAO();
 void setupMenuVAO();
@@ -219,14 +225,26 @@ int main() {
 
     Shader modelShader("model.vs", "model.fs");
     Shader mazeShader("spot_light.vs", "spot_light.fs");
-    Shader normalMappingShader("normal_mapping.vs", "normal_mapping.fs"); // PER NORMAL MAPPING
     Shader lampShader("lamp.vs", "lamp.fs");
     Shader menuShader("menu.vs", "menu.fs");
+    Shader animModelShader("anim_model.vs", "anim_model.fs"); // Per il minotauro
 
     Sword sword("resources/sword/sword.obj");
+    Model minotaurModel("resources/minotaur/minotaur.glb"); // Assicurati di avere il modello del minotauro
+    minotaurModel.LoadAnimation("idle", "resources/minotaur/idle.glb");
+    minotaurModel.LoadAnimation("walk", "resources/minotaur/walk.glb");
+    minotaurModel.LoadAnimation("get_hit", "resources/minotaur/get_hit.glb");
+    minotaurModel.LoadAnimation("death", "resources/minotaur/death.glb");
+    minotaurModel.LoadAnimation("attack", "resources/minotaur/attack.glb");
 
-    loadMazeFromMap();
+    // 1. Dichiara una variabile per la posizione di partenza
+    glm::vec3 minotaurStartPosition;
+    // 2. Chiama la nuova funzione per caricare il labirinto E trovare lo spawn
+    loadLevelData(minotaurStartPosition);
+
+    //loadMazeFromMap();
     camera.Position = glm::vec3(1 * CELL_SIZE + CELL_SIZE / 2.0f, CAMERA_HEIGHT, 1 * CELL_SIZE + CELL_SIZE / 2.0f);
+    Minotaur minotaur(minotaurModel, glm::vec3(15.0f * CELL_SIZE, 0.0f, 15.0f * CELL_SIZE), maze); //per il minotauro
 
     float lightHeight = WALL_HEIGHT - 0.1f;
     spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
@@ -244,8 +262,9 @@ int main() {
 
     textureWall = loadtexture("resources/textures/lab_wall_diffuse.jpg", false);
     textureFloor = loadtexture("resources/textures/floor_diffuse.jpg", false);
-    textureCeiling = loadtexture("resources/textures/ceiling.jpg", false);
+    textureCeiling = loadtexture("resources/textures/ceiling_diffuse.jpg", false);
     menuTexture = loadtexture("resources/textures/menu.jpg", false);
+    
 
     setupMenuVAO();
     setupMazeGeometryVAOs();
@@ -262,6 +281,11 @@ int main() {
     }
 
     glfwSetWindowUserPointer(window, &sword);
+
+    // Setup Contesto di Gioco per i Callback
+    GameContext context = { &sword, &minotaur, &camera };
+    glfwSetWindowUserPointer(window, &context);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -340,6 +364,12 @@ int main() {
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
 
+            // Render Minotauro
+            animModelShader.use();
+            animModelShader.setMat4("projection", projection);
+            animModelShader.setMat4("view", view);
+            minotaur.Draw(animModelShader);
+
             if (!isPlayerDead) {
                 sword.Draw(modelShader, camera, projection, view);
             }
@@ -351,11 +381,13 @@ int main() {
             std::string itemsInfo = "Oggetti: " + std::to_string(itemsFound) + "/3";
             RenderText(itemsInfo.c_str(), 10.0f, SCR_HEIGHT - 40.0f, 0.7f, glm::vec3(1.0, 1.0, 0.0));
 
-            // --- SALUTE GIOCATORE: Mostra la salute sullo schermo ---
-            std::string playerHealthText = "Salute: " + std::to_string((int)playerHealth);
-            RenderText(playerHealthText.c_str(), 10.0f, SCR_HEIGHT - 70.0f, 0.8f, glm::vec3(0.5, 1.0, 0.5f));
-
-            // --- SALUTE GIOCATORE: Mostra la schermata di Game Over ---
+            RenderText(("Salute: " + std::to_string((int)playerHealth)).c_str(), 10.0f, SCR_HEIGHT - 60.0f, 0.7f, glm::vec3(0.5, 1.0, 0.5f));
+            if (minotaur.health > 0) {
+                RenderText(("Minotaur HP: " + std::to_string((int)minotaur.health)).c_str(), SCR_WIDTH - 350.0f, 10.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
+            }
+            else {
+                RenderText("Minotaur Sconfitto", SCR_WIDTH - 350.0f, 10.0f, 0.7f, glm::vec3(0.5, 1.0, 0.5f));
+            }
             if (isPlayerDead) {
                 RenderText("SEI MORTO", SCR_WIDTH / 2.0f - 150.0f, SCR_HEIGHT / 2.0f, 2.0f, glm::vec3(1.0, 0.1, 0.1));
                 RenderText("Premi ESC per uscire", SCR_WIDTH / 2.0f - 120.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(0.8, 0.8, 0.8));
@@ -412,15 +444,21 @@ void PlayerTakeDamage(float damage) {
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    if (!isGameActive) return;
+    if (!isGameActive || isPlayerDead) return;
+    GameContext* context = static_cast<GameContext*>(glfwGetWindowUserPointer(window));
+    if (!context) return;
 
-    Sword* sword = static_cast<Sword*>(glfwGetWindowUserPointer(window));
-
-    if (sword && button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
     {
-        sword->Attack();
-        if (attackSound)
-            SoundEngine->play2D(attackSound);
+        context->sword->Attack();
+        if (attackSound) SoundEngine->play2D(attackSound, false);
+
+        float SWORD_ATTACK_RANGE = 3.5f;
+        if (glm::distance(context->camera->Position, context->minotaur->position) < SWORD_ATTACK_RANGE) {
+            context->minotaur->TakeDamage(25.0f);
+            if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
+            if (context->minotaur->health <= 0 && minotaurDeathSound) SoundEngine->play2D(minotaurDeathSound, false);
+        }
     }
 }
 
@@ -456,19 +494,29 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // --- MODIFICA: Recupera il GameContext per accedere al minotauro ---
+    GameContext* context = static_cast<GameContext*>(glfwGetWindowUserPointer(window));
+    // Se il context non è ancora valido (improbabile ma sicuro), non fare nulla
+    if (!context) return;
+
     if (!isGameActive) {
+        // Logica del Menu (invariata)
         static bool enterPressedLastFrame = false;
         bool enterIsPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
 
         if (enterIsPressed && !enterPressedLastFrame) {
             isGameActive = true;
             SoundEngine->stopAllSounds();
+            if (mainTheme) SoundEngine->play2D(mainTheme, true);
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             firstMouse = true;
         }
         enterPressedLastFrame = enterIsPressed;
     }
     else {
+        // Logica di Gioco Attivo
+        if (isPlayerDead) return; // Blocca i controlli se il giocatore è morto
+
         float desiredHeight = CAMERA_HEIGHT;
         glm::vec3 originalPosition = camera.Position;
 
@@ -481,14 +529,15 @@ void processInput(GLFWwindow* window) {
         glm::vec3 attemptedPosition = camera.Position;
         attemptedPosition.y = desiredHeight;
 
-        if (checkCollision(attemptedPosition)) {
+        // --- MODIFICA: Passa il minotauro a ogni chiamata di checkCollision ---
+        if (checkCollision(attemptedPosition, *context->minotaur)) {
             glm::vec3 checkPosNoX = glm::vec3(originalPosition.x, desiredHeight, attemptedPosition.z);
-            if (!checkCollision(checkPosNoX)) {
+            if (!checkCollision(checkPosNoX, *context->minotaur)) {
                 camera.Position.x = originalPosition.x;
             }
             else {
                 glm::vec3 checkPosNoZ = glm::vec3(attemptedPosition.x, desiredHeight, originalPosition.z);
-                if (!checkCollision(checkPosNoZ)) {
+                if (!checkCollision(checkPosNoZ, *context->minotaur)) {
                     camera.Position.z = originalPosition.z;
                 }
                 else {
@@ -501,19 +550,43 @@ void processInput(GLFWwindow* window) {
     }
 }
 
-void loadMazeFromMap() {
+//void loadMazeFromMap() {
+//    for (int y = 0; y < MAZE_HEIGHT; ++y) {
+//        for (int x = 0; x < MAZE_WIDTH; ++x) {
+//            maze[y][x].visited = false;
+//            maze[y][x].wall = (initial_maze_map[y][x] == 1);
+//        }
+//    }
+//}
+
+// Nuova versione che cerca anche gli spawn point
+void loadLevelData(glm::vec3& minotaurSpawnPos) {
+    // Imposta una posizione di default nel caso non trovassimo un '2' nella mappa
+    minotaurSpawnPos = glm::vec3(10.0f, 0.0f, 10.0f);
+
     for (int y = 0; y < MAZE_HEIGHT; ++y) {
         for (int x = 0; x < MAZE_WIDTH; ++x) {
-            maze[y][x].visited = false;
-            maze[y][x].wall = (initial_maze_map[y][x] == 1);
+
+            if (initial_maze_map[y][x] == 1) {
+                maze[y][x].wall = true;
+            }
+            else {
+                maze[y][x].wall = false;
+
+                // Se troviamo lo spawn point del minotauro
+                if (initial_maze_map[y][x] == 2) {
+                    // Calcoliamo la posizione nel mondo 3D
+                    float worldX = x * CELL_SIZE + CELL_SIZE / 2.0f;
+                    float worldZ = y * CELL_SIZE + CELL_SIZE / 2.0f;
+                    minotaurSpawnPos = glm::vec3(worldX, 0.0f, worldZ);
+                }
+            }
         }
     }
 }
 
-bool checkCollision(glm::vec3 checkPos) {
-    if (checkPos.y < CAMERA_HEIGHT - 0.1f || checkPos.y > CAMERA_HEIGHT + 0.1f) return true;
-
-    float radius = CAMERA_COLLISION_RADIUS;
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
+    // 1. Collisione con i muri
     int gridX = static_cast<int>(floor(checkPos.x / CELL_SIZE));
     int gridZ = static_cast<int>(floor(checkPos.z / CELL_SIZE));
 
@@ -523,18 +596,24 @@ bool checkCollision(glm::vec3 checkPos) {
                 float wallX = (x * CELL_SIZE) + (CELL_SIZE / 2.0f);
                 float wallZ = (z * CELL_SIZE) + (CELL_SIZE / 2.0f);
 
-                float closestX = max(wallX - CELL_SIZE / 2.0f, min(checkPos.x, wallX + CELL_SIZE / 2.0f));
-                float closestZ = max(wallZ - CELL_SIZE / 2.0f, min(checkPos.z, wallZ + CELL_SIZE / 2.0f));
+                float closestX = std::max(wallX - CELL_SIZE / 2.0f, std::min(checkPos.x, wallX + CELL_SIZE / 2.0f));
+                float closestZ = std::max(wallZ - CELL_SIZE / 2.0f, std::min(checkPos.z, wallZ + CELL_SIZE / 2.0f));
 
-                float distance = sqrt(pow(closestX - checkPos.x, 2) + pow(closestZ - checkPos.z, 2));
-
-                if (distance < radius) {
-                    return true;
+                if (glm::distance(glm::vec2(closestX, closestZ), glm::vec2(checkPos.x, checkPos.z)) < CAMERA_COLLISION_RADIUS) {
+                    return true; // Collision with a wall
                 }
             }
         }
     }
-    return false;
+
+    // 2. Collisione con il minotauro (se è vivo)
+    if (minotaur.health > 0) {
+        if (glm::distance(glm::vec2(checkPos.x, checkPos.z), glm::vec2(minotaur.position.x, minotaur.position.z)) < minotaur.collisionRadius + CAMERA_COLLISION_RADIUS) {
+            return true; // Collision with the minotaur
+        }
+    }
+
+    return false; // No collision
 }
 
 void setupMazeGeometryVAOs() {

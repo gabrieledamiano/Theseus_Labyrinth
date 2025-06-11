@@ -196,6 +196,7 @@
     <ClInclude Include="assimp_glm_helpers.h" />
     <ClInclude Include="bone.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="cell.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="minotaur.h" />
     <ClInclude Include="model.h" />

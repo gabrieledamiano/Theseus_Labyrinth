@@ -122,5 +122,8 @@
     <ClInclude Include="minotaur.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

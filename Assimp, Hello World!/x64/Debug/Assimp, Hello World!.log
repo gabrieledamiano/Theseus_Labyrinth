@@ -21,6 +21,24 @@ D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\model.h(170,43): warning C4018: '<': errata corrispondenza tra signed e unsigned
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(486,32): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(114,8): error C2011: 'Cell': ridefinizione tipo 'struct'
+      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
+      vedere la dichiarazione di 'Cell'
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(339,34): error C2027: utilizzo di tipo non definito 'Cell'
+      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
+      vedere la dichiarazione di 'Cell'
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(539,22): error C2027: utilizzo di tipo non definito 'Cell'
+      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
+      vedere la dichiarazione di 'Cell'
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(540,22): error C2027: utilizzo di tipo non definito 'Cell'
+      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
+      vedere la dichiarazione di 'Cell'
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(551,83): error C2027: utilizzo di tipo non definito 'Cell'
+      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
+      vedere la dichiarazione di 'Cell'
+  
   Generazione del codice in corso...
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\render_text.h(131,1): warning C4715: 'initRenderText': non tutti i percorsi di controllo restituiscono un valore
