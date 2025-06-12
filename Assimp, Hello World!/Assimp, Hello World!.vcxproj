@@ -197,6 +197,7 @@
     <ClInclude Include="bone.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="cell.h" />
+    <ClInclude Include="config.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="minotaur.h" />
     <ClInclude Include="model.h" />
