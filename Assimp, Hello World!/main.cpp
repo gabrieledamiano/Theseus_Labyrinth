@@ -148,7 +148,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void loadLevelData(glm::vec3& minotaurSpawnPos);
-bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur);
+//bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur);
+bool checkWallCollision(glm::vec3 checkPos);
+bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur);
 void setupMazeGeometryVAOs();
 void setupWindowVAO();
 void setupMenuVAO();
@@ -385,11 +387,13 @@ int main() {
             }
             glBindVertexArray(0); // Unbind VAO after drawing
 
-            // Render Minotaur
-            animModelShader.use();
-            animModelShader.setMat4("projection", projection);
-            animModelShader.setMat4("view", view);
-            minotaur.Draw(animModelShader);
+            // Render Minotaur solo se non è nello stato "FINISHED"
+            if (minotaur.currentState != Minotaur::State::FINISHED) {
+                animModelShader.use();
+                animModelShader.setMat4("projection", projection);
+                animModelShader.setMat4("view", view);
+                minotaur.Draw(animModelShader);
+            }
 
 
             if (!isPlayerDead) {
@@ -479,7 +483,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
         float SWORD_ATTACK_RANGE = 3.5f;
         if (glm::distance(context->camera->Position, context->minotaur->position) < SWORD_ATTACK_RANGE) {
-            context->minotaur->TakeDamage(25.0f);
+            context->minotaur->TakeDamage(15.0f);
             if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
             if (context->minotaur->health <= 0 && minotaurDeathSound) SoundEngine->play2D(minotaurDeathSound, false);
         }
@@ -515,6 +519,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
         camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
+// In main.cpp (sostituisci l'intera processInput)
+
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -522,10 +528,12 @@ void processInput(GLFWwindow* window) {
     GameContext* context = static_cast<GameContext*>(glfwGetWindowUserPointer(window));
     if (!context) return;
 
+    Minotaur& minotaur = *context->minotaur; // Usiamo un riferimento per pulizia
+
     if (!isGameActive) {
+        // Logica per avviare il gioco (invariata)
         static bool enterPressedLastFrame = false;
         bool enterIsPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
-
         if (enterIsPressed && !enterPressedLastFrame) {
             isGameActive = true;
             SoundEngine->stopAllSounds();
@@ -534,40 +542,84 @@ void processInput(GLFWwindow* window) {
             firstMouse = true;
         }
         enterPressedLastFrame = enterIsPressed;
+        return;
     }
-    else {
-        if (isPlayerDead) return;
 
-        float desiredHeight = CAMERA_HEIGHT;
-        glm::vec3 originalPosition = camera.Position;
+    // Se il gioco è attivo
+    if (isPlayerDead) return;
 
-        float moveSpeed = 3.5f;
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) camera.ProcessKeyboard(FORWARD, deltaTime * moveSpeed);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) camera.ProcessKeyboard(BACKWARD, deltaTime * moveSpeed);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) camera.ProcessKeyboard(LEFT, deltaTime * moveSpeed);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) camera.ProcessKeyboard(RIGHT, deltaTime * moveSpeed);
+    // --- LOGICA DI MOVIMENTO E COLLISIONE RIVISTA E CORRETTA ---
 
-        glm::vec3 attemptedPosition = camera.Position;
-        attemptedPosition.y = desiredHeight;
+    glm::vec3 originalPosition = camera.Position;
 
-        if (checkCollision(attemptedPosition, *context->minotaur)) {
-            glm::vec3 checkPosNoX = glm::vec3(originalPosition.x, desiredHeight, attemptedPosition.z);
-            if (!checkCollision(checkPosNoX, *context->minotaur)) {
-                camera.Position.x = originalPosition.x;
-            }
-            else {
-                glm::vec3 checkPosNoZ = glm::vec3(attemptedPosition.x, desiredHeight, originalPosition.z);
-                if (!checkCollision(checkPosNoZ, *context->minotaur)) {
-                    camera.Position.z = originalPosition.z;
-                }
-                else {
-                    camera.Position.x = originalPosition.x;
-                    camera.Position.z = originalPosition.z;
-                }
-            }
+    // 1. Calcola il vettore di movimento desiderato in base all'input
+    float moveSpeed = 3.5f;
+    glm::vec3 desiredMovement(0.0f);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) desiredMovement += camera.Front;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) desiredMovement -= camera.Front;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) desiredMovement -= camera.Right;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) desiredMovement += camera.Right;
+
+    if (glm::length(desiredMovement) > 0.0f) {
+        desiredMovement.y = 0.0f; // Il movimento è solo sul piano XZ
+        desiredMovement = glm::normalize(desiredMovement) * moveSpeed * deltaTime;
+    }
+
+    // Posizione finale che verrà calcolata passo dopo passo
+    glm::vec3 finalPosition = originalPosition;
+
+    // 2. Risolvi prima la collisione con i MURI (con sliding)
+    if (glm::length(desiredMovement) > 0.0f) {
+        // Tentiamo di applicare prima il movimento sull'asse X
+        finalPosition.x += desiredMovement.x;
+        if (checkWallCollision(finalPosition)) {
+            finalPosition.x = originalPosition.x; // Se c'è collisione, annulla il movimento su X
         }
-        camera.Position.y = desiredHeight;
+
+        // Ora tentiamo di applicare il movimento sull'asse Z
+        finalPosition.z += desiredMovement.z;
+        if (checkWallCollision(finalPosition)) {
+            finalPosition.z = originalPosition.z; // Se c'è collisione, annulla il movimento su Z
+        }
     }
+
+    // Ora 'finalPosition' contiene la posizione corretta dopo lo slide sui muri
+    camera.Position = finalPosition;
+
+    // 3. Risolvi ora la collisione con il MINOTAURO (con spinta 2D)
+    if (checkMinotaurCollision(camera.Position, minotaur)) {
+
+        // --- CALCOLI ESEGUITI ESCLUSIVAMENTE IN 2D ---
+        glm::vec2 playerPos2D(camera.Position.x, camera.Position.z);
+        glm::vec2 minotaurPos2D(minotaur.position.x, minotaur.position.z);
+
+        float combinedRadius = CAMERA_COLLISION_RADIUS + minotaur.collisionRadius;
+        float distance2D = glm::distance(playerPos2D, minotaurPos2D);
+
+        // Se la distanza è quasi zero, evita divisione per zero e applica una spinta di default
+        if (distance2D < 0.0001f) {
+            camera.Position.x += combinedRadius;
+        }
+        else {
+            float penetrationDepth = combinedRadius - distance2D;
+            glm::vec2 pushDirection2D = glm::normalize(playerPos2D - minotaurPos2D);
+            glm::vec2 correction2D = pushDirection2D * penetrationDepth;
+
+            // Applica la correzione solo sugli assi X e Z
+            camera.Position.x += correction2D.x;
+            camera.Position.z += correction2D.y;
+        }
+
+        // Un ultimo controllo per assicurarsi che la spinta non ci mandi dentro un muro
+        if (checkWallCollision(camera.Position)) {
+            // Se la spinta ci manda in un muro, è meglio non muoversi affatto
+            // per evitare di rimanere incastrati.
+            camera.Position = originalPosition;
+        }
+    }
+
+    // 4. Assicura che l'altezza della camera sia sempre corretta
+    camera.Position.y = CAMERA_HEIGHT;
 }
 
 void loadLevelData(glm::vec3& minotaurSpawnPos) {
@@ -590,7 +642,7 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
     }
 }
 
-bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
+/*bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
     // 1. Collisione con i muri (logica che hai già)
     int gridX = static_cast<int>(floor(checkPos.x / CELL_SIZE));
     int gridZ = static_cast<int>(floor(checkPos.z / CELL_SIZE));
@@ -611,8 +663,8 @@ bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
         }
     }
 
-    // 2. NUOVA PARTE: Collisione con il minotauro (se è vivo)
-    if (minotaur.health > 0) {
+    // 2. NUOVA PARTE: Collisione con il minotauro (se non è "finito")
+    if (minotaur.currentState != Minotaur::State::FINISHED) {
         // Calcoliamo la distanza tra il giocatore e il minotauro sul piano XZ
         float distance = glm::distance(glm::vec2(checkPos.x, checkPos.z), glm::vec2(minotaur.position.x, minotaur.position.z));
 
@@ -623,6 +675,41 @@ bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
     }
 
     return false; // Nessuna collisione
+}
+*/
+
+// Funzione 1: Controlla SOLO la collisione con i muri
+bool checkWallCollision(glm::vec3 checkPos) {
+    int gridX = static_cast<int>(floor(checkPos.x / CELL_SIZE));
+    int gridZ = static_cast<int>(floor(checkPos.z / CELL_SIZE));
+
+    for (int z = gridZ - 1; z <= gridZ + 1; ++z) {
+        for (int x = gridX - 1; x <= gridX + 1; ++x) {
+            if (x >= 0 && x < MAZE_WIDTH && z >= 0 && z < MAZE_HEIGHT && maze[z][x].wall) {
+                float wallX = (x * CELL_SIZE) + (CELL_SIZE / 2.0f);
+                float wallZ = (z * CELL_SIZE) + (CELL_SIZE / 2.0f);
+
+                float closestX = std::max(wallX - CELL_SIZE / 2.0f, std::min(checkPos.x, wallX + CELL_SIZE / 2.0f));
+                float closestZ = std::max(wallZ - CELL_SIZE / 2.0f, std::min(checkPos.z, wallZ + CELL_SIZE / 2.0f));
+
+                if (glm::distance(glm::vec2(closestX, closestZ), glm::vec2(checkPos.x, checkPos.z)) < CAMERA_COLLISION_RADIUS) {
+                    return true; // Collisione con un muro
+                }
+            }
+        }
+    }
+    return false; // Nessuna collisione con i muri
+}
+
+// Funzione 2: Controlla SOLO la collisione con il Minotauro
+bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
+    if (minotaur.currentState != Minotaur::State::FINISHED) {
+        float distance = glm::distance(glm::vec2(checkPos.x, checkPos.z), glm::vec2(minotaur.position.x, minotaur.position.z));
+        if (distance < minotaur.collisionRadius + CAMERA_COLLISION_RADIUS) {
+            return true; // Collisione con il minotauro
+        }
+    }
+    return false; // Nessuna collisione con il minotauro
 }
 
 void setupMazeGeometryVAOs() {
