@@ -170,6 +170,8 @@
     <None Include="fragment_shader.fs" />
     <None Include="lamp.fs" />
     <None Include="lamp.vs" />
+    <None Include="line.fs" />
+    <None Include="line.vs" />
     <None Include="menu.fs" />
     <None Include="menu.vs" />
     <None Include="model.fs" />
