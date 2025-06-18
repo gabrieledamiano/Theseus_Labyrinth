@@ -64,6 +64,12 @@ ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resource
 float playerHealth = 100.0f;
 const float PLAYER_MAX_HEALTH = 100.0f;
 
+// --- STAMINA: Nuove variabili ---
+float playerStamina = 100.0f;
+const float PLAYER_MAX_STAMINA = 100.0f;
+const float SPRINT_DRAIN_RATE = 25.0f; // Punti al secondo
+const float STAMINA_REGEN_RATE = 15.0f; // Punti al secondo
+
 const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
     { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
     { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1 },
@@ -399,6 +405,17 @@ int main() {
 
             glDisable(GL_DEPTH_TEST);
             RenderText(("Salute: " + std::to_string(static_cast<int>(playerHealth))).c_str(), 10.0f, SCR_HEIGHT - 60.0f, 0.7f, glm::vec3(0.5, 1.0, 0.5f));
+
+            // --- STAMINA: Disegna la barra della stamina ---
+            std::string staminaBar = "Stamina: [";
+            int barWidth = 20;
+            int filledWidth = static_cast<int>((playerStamina / PLAYER_MAX_STAMINA) * barWidth);
+            for (int i = 0; i < barWidth; ++i) {
+                staminaBar += (i < filledWidth) ? '|' : ' ';
+            }
+            staminaBar += "]";
+            RenderText(staminaBar.c_str(), 10.0f, SCR_HEIGHT - 75.0f, 0.6f, glm::vec3(0.9, 0.9, 0.2));
+
             if (minotaur.health > 0) {
                 RenderText(("Minotaur HP: " + std::to_string(static_cast<int>(minotaur.health))).c_str(), SCR_WIDTH - 70.0f, 10.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
             }
@@ -657,9 +674,33 @@ void processInput(GLFWwindow* window) {
             }
         }
 
+        // --- INIZIO LOGICA STAMINA E SCATTO ---
+        bool isSprinting = false;
+        // Controlla se il tasto SHIFT è premuto e se c'è stamina residua
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && playerStamina > 0) {
+            isSprinting = true;
+            playerStamina -= SPRINT_DRAIN_RATE * deltaTime; // Consuma stamina
+            if (playerStamina < 0) playerStamina = 0;
+        }
+        else {
+            // Altrimenti, rigenera la stamina se non è al massimo
+            if (playerStamina < PLAYER_MAX_STAMINA) {
+                playerStamina += STAMINA_REGEN_RATE * deltaTime;
+                if (playerStamina > PLAYER_MAX_STAMINA) playerStamina = PLAYER_MAX_STAMINA;
+            }
+        }
+
+        // Determina la velocità di movimento attuale
+        const float NORMAL_SPEED = 3.5f;
+        const float SPRINT_SPEED = 6.5f;
+        float currentMoveSpeed = isSprinting ? SPRINT_SPEED : NORMAL_SPEED;
+        // --- FINE LOGICA STAMINA ---
+
+
         glm::vec3 originalPosition = camera.Position;
-        float moveSpeed = 3.5f;
+        // float moveSpeed = 3.5f; // Rimossa la velocità fissa
         glm::vec3 desiredMovement(0.0f);
+
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) desiredMovement += camera.Front;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) desiredMovement -= camera.Front;
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) desiredMovement -= camera.Right;
@@ -667,9 +708,11 @@ void processInput(GLFWwindow* window) {
 
         if (glm::length(desiredMovement) > 0.0f) {
             desiredMovement.y = 0.0f;
-            desiredMovement = glm::normalize(desiredMovement) * moveSpeed * deltaTime;
+            // Usa la nuova velocità dinamica calcolata dalla logica della stamina
+            desiredMovement = glm::normalize(desiredMovement) * currentMoveSpeed * deltaTime;
         }
 
+        // La tua logica di collisione e movimento rimane invariata
         if (glm::length(desiredMovement) > 0.0f) {
             glm::vec3 finalPosition = originalPosition;
             finalPosition.x += desiredMovement.x;
@@ -717,6 +760,7 @@ void processInput(GLFWwindow* window) {
     }
     }
 }
+
 
 void loadLevelData(glm::vec3& minotaurSpawnPos) {
     minotaurSpawnPos = glm::vec3(-1.0f);
