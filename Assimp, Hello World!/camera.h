@@ -56,6 +56,16 @@ public:
         return glm::lookAt(Position, Position + Front, Up);
     }
 
+    // --- AGGIUNGI QUESTO NUOVO METODO PUBBLICO ---
+    void Reset() {
+        Position = glm::vec3(1 * CELL_SIZE + CELL_SIZE / 2.0f, CAMERA_HEIGHT, 1 * CELL_SIZE + CELL_SIZE / 2.0f);
+        Yaw = YAW;
+        Pitch = PITCH;
+        Zoom = ZOOM;
+        // Ora la chiamata a updateCameraVectors() è LEGALE perché viene fatta dall'interno della classe.
+        updateCameraVectors();
+    }
+
     void ProcessKeyboard(Camera_Movement direction, float deltaTime) {
         float velocity = MovementSpeed * deltaTime;
         glm::vec3 moveDirection(0.0f);

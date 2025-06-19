@@ -76,6 +76,12 @@
     <None Include="normal_mapping.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="line.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="line.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

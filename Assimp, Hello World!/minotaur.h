@@ -142,6 +142,30 @@ public:
         }
     }
 
+    // NUOVO METODO RESET
+    void Reset() {
+        // Ripristina la salute al valore iniziale
+        health = 250.0f; // Assicurati che sia lo stesso valore del costruttore
+
+        // Riportalo alla sua posizione di spawn
+        position = spawnPosition;
+
+        // Imposta lo stato direttamente su IDLE, bypassando i controlli di SetState.
+        // Questa è la correzione chiave del bug.
+        currentState = State::IDLE;
+
+        // Resetta manualmente anche le altre variabili di stato correlate
+        idleTimer = 0.0f;
+        stateTimer = 0.0f;
+        m_path_world.clear();
+        currentPathIndex = 0;
+
+        // Fa ripartire anche l'animazione di idle per essere sicuri che sia visivamente corretto
+        if (minotaurModel.m_Animations.count("idle")) {
+            animator.PlayAnimation(minotaurModel.m_Animations["idle"]);
+        }
+    }
+
     // Funzione di aggiornamento principale
     void Update(float deltaTime, glm::vec3 playerPosition) {
         animator.UpdateAnimation(deltaTime);
