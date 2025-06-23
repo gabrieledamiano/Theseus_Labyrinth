@@ -416,11 +416,42 @@ int main() {
             staminaBar += "]";
             RenderText(staminaBar.c_str(), 10.0f, SCR_HEIGHT - 75.0f, 0.6f, glm::vec3(0.9, 0.9, 0.2));
 
+            // --- NUOVA LOGICA PER BARRA VITA MINOTAURO ---
+
+            
+
+            // Mostra la barra solo se il Minotauro è nel raggio di avviso e di fronte al giocatore
+
             if (minotaur.health > 0) {
-                RenderText(("Minotaur HP: " + std::to_string(static_cast<int>(minotaur.health))).c_str(), SCR_WIDTH - 70.0f, 10.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
+                
+                float distanceToMino = glm::distance(camera.Position, minotaur.position);
+
+                glm::vec3 toMinoDir = glm::normalize(minotaur.position - camera.Position);
+
+                float dotProduct = glm::dot(camera.Front, toMinoDir);
+
+                if (distanceToMino < minotaur.NOTICE_RANGE && dotProduct > 0.3f) {
+
+                    std::string minoHealthBar = "Minotauro: [";
+
+                    int minoBarWidth = 25;
+
+                    int minoFilledWidth = static_cast<int>((minotaur.health / 100.0f) * minoBarWidth);
+
+                    for (int i = 0; i < minoBarWidth; ++i) {
+
+                        minoHealthBar += (i < minoFilledWidth) ? '#' : ' ';
+
+                    }
+
+                    minoHealthBar += "]";
+
+                    RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
+                }
+
             }
             else {
-                RenderText("Minotaur Sconfitto", SCR_WIDTH - 200.0f, 10.0f, 0.7f, glm::vec3(0.5, 1.0, 0.5f));
+                RenderText("Minotaur Sconfitto", 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
             }
 
             if (currentState == GameState::GAME_OVER) {
