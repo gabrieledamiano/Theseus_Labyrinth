@@ -85,7 +85,7 @@ public:
         mazeLayout(maze),
         orientation(0.0f),
         speed(2.9f),
-        health(250.0f),
+        health(500.0f),
         collisionRadius(0.45f),
         currentState(State::IDLE),
         stateTimer(0.0f),
@@ -142,10 +142,10 @@ public:
         }
     }
 
-    // NUOVO METODO RESET
+    
     void Reset() {
         // Ripristina la salute al valore iniziale
-        health = 250.0f; // Assicurati che sia lo stesso valore del costruttore
+        health = 500.0f; // Assicurati che sia lo stesso valore del costruttore
 
         // Riportalo alla sua posizione di spawn
         position = spawnPosition;

@@ -206,6 +206,7 @@
     <ClInclude Include="render_text.h" />
     <ClInclude Include="shader_m.h" />
     <ClInclude Include="sword.h" />
+    <ClInclude Include="timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
