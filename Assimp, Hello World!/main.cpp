@@ -33,6 +33,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "timer.h"
 
 using namespace irrklang;
 
@@ -63,6 +64,9 @@ ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resource
 // --- Variabili Globali di Gioco ---
 float playerHealth = 100.0f;
 const float PLAYER_MAX_HEALTH = 100.0f;
+
+// --- NUOVO TIMER PER MESSAGGIO VITTORIA ---
+Timer victoryMessageTimer(5.0f); // Il messaggio dura 5 secondi
 
 // --- STAMINA: Nuove variabili ---
 float playerStamina = 100.0f;
@@ -316,6 +320,8 @@ int main() {
                         hintTimer = 0.0f;
                     }
                 }
+                // --- AGGIORNA IL NUOVO TIMER ---
+                victoryMessageTimer.Update(deltaTime);
             }
 
             mazeShader.use();
@@ -421,8 +427,12 @@ int main() {
             
 
             // Mostra la barra solo se il Minotauro è nel raggio di avviso e di fronte al giocatore
+            // Logica per Barra Vita / Messaggio Sconfitta Minotauro
+            if (victoryMessageTimer.IsActive()) {
+                RenderText("Minotaur Sconfitto", SCR_WIDTH / 2.0f - 120.0f, SCR_HEIGHT - 50.0f, 0.8f, glm::vec3(0.5, 1.0, 0.5f));
+            }
 
-            if (minotaur.health > 0) {
+            else if (minotaur.health > 0) {
                 
                 float distanceToMino = glm::distance(camera.Position, minotaur.position);
 
@@ -449,9 +459,6 @@ int main() {
                     RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
                 }
 
-            }
-            else {
-                RenderText("Minotaur Sconfitto", 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
             }
 
             if (currentState == GameState::GAME_OVER) {
@@ -535,9 +542,9 @@ void PlayerTakeDamage(float damage) {
     }
 }
 
+// In main.cpp
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (currentState != GameState::PLAYING) return;
-
     GameContext* context = static_cast<GameContext*>(glfwGetWindowUserPointer(window));
     if (!context) return;
 
@@ -547,9 +554,20 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
         float SWORD_ATTACK_RANGE = 3.5f;
         if (glm::distance(context->camera->Position, context->minotaur->position) < SWORD_ATTACK_RANGE) {
+
+            bool minotaurWasAlive = context->minotaur->health > 0;
             context->minotaur->TakeDamage(20.0f);
-            if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
-            if (context->minotaur->health <= 0 && minotaurDeathSound) SoundEngine->play2D(minotaurDeathSound, false);
+
+            if (context->minotaur->health > 0) {
+                if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
+            }
+            // Controlla se era vivo PRIMA di questo colpo e ora non lo è più
+            else if (minotaurWasAlive) {
+                if (minotaurDeathSound) SoundEngine->play2D(minotaurDeathSound, false);
+
+                // --- FAI PARTIRE IL TIMER DEL MESSAGGIO ---
+                victoryMessageTimer.Start();
+            }
         }
     }
 }
