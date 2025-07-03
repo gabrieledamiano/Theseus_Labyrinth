@@ -30,6 +30,7 @@
 #include "sword.h"
 #include "animator.h"
 #include "minotaur.h"
+#include "chest.h" // <-- NUOVO INCLUDE
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -42,6 +43,7 @@ struct GameContext {
     Sword* sword;
     Minotaur* minotaur;
     Camera* camera;
+    std::vector<Chest>* chests; // <-- NUOVO PUNTATORE
 };
 
 // --- STATO DEL GIOCO ---
@@ -64,9 +66,16 @@ ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resource
 // --- Variabili Globali di Gioco ---
 float playerHealth = 100.0f;
 const float PLAYER_MAX_HEALTH = 100.0f;
+float playerAttackDamage = 25.0f; // <-- NUOVA VARIABILE per il danno
 
 // --- NUOVO TIMER PER MESSAGGIO VITTORIA ---
 Timer victoryMessageTimer(5.0f); // Il messaggio dura 5 secondi
+
+// --- Variabili per le Casse ---
+std::vector<Chest> chests;
+Model* chestModel_ptr = nullptr; // Usiamo un puntatore per il modello
+Timer powerUpMessageTimer(4.0f); // Timer per il messaggio del power-up
+std::string lastPowerUpMessage = "";
 
 // --- STAMINA: Nuove variabili ---
 float playerStamina = 100.0f;
@@ -81,7 +90,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
     { 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
     { 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 },
     { 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-    { 1, 2, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+    { 1, 2, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 4, 0, 0, 0, 1, 1 },
     { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
     { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
@@ -94,9 +103,9 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
     { 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
+    { 1, 0, 0, 4, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 4, 0, 0, 0, 0, 0, 1 },
     { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
@@ -226,6 +235,9 @@ int main() {
     minotaurModel.LoadAnimation("death", "resources/minotaur/death.glb");
     minotaurModel.LoadAnimation("attack", "resources/minotaur/attack.glb");
 
+    // Carica il modello della cassa
+    chestModel_ptr = new Model("resources/chest/chest.glb");
+
     glm::vec3 minotaurStartPosition;
     loadLevelData(minotaurStartPosition);
 
@@ -279,7 +291,8 @@ int main() {
 
     if (mainTheme) SoundEngine->play2D(mainTheme, true);
 
-    GameContext context = { &sword, &minotaur, &camera };
+    // Inizializza il GameContext con il puntatore alle casse
+    GameContext context = { &sword, &minotaur, &camera, &chests };
     glfwSetWindowUserPointer(window, &context);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -322,6 +335,8 @@ int main() {
                 }
                 // --- AGGIORNA IL NUOVO TIMER ---
                 victoryMessageTimer.Update(deltaTime);
+                // --- AGGIUNTA CASSE: Aggiorna il timer del messaggio power-up ---
+                powerUpMessageTimer.Update(deltaTime);
             }
 
             mazeShader.use();
@@ -386,6 +401,22 @@ int main() {
                 }
             }
 
+            if (minotaur.currentState != Minotaur::State::FINISHED) {
+                animModelShader.use();
+                animModelShader.setMat4("projection", projection);
+                animModelShader.setMat4("view", view);
+                //animModelShader.setVec3("viewPos", camera.Position);
+                minotaur.Draw(animModelShader);
+            }
+
+            // --- AGGIUNTA CASSE: Render delle casse ---
+            modelShader.use();
+            modelShader.setMat4("projection", projection);
+            modelShader.setMat4("view", view);
+            for (auto& chest : chests) {
+                chest.Draw(modelShader);
+            }
+
             lampShader.use();
             lampShader.setMat4("projection", projection);
             lampShader.setMat4("view", view);
@@ -398,12 +429,7 @@ int main() {
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
 
-            if (minotaur.currentState != Minotaur::State::FINISHED) {
-                animModelShader.use();
-                animModelShader.setMat4("projection", projection);
-                animModelShader.setMat4("view", view);
-                minotaur.Draw(animModelShader);
-            }
+            
 
             if (currentState == GameState::PLAYING) {
                 sword.Draw(modelShader, camera, projection, view);
@@ -411,6 +437,9 @@ int main() {
 
             glDisable(GL_DEPTH_TEST);
             RenderText(("Salute: " + std::to_string(static_cast<int>(playerHealth))).c_str(), 10.0f, SCR_HEIGHT - 60.0f, 0.7f, glm::vec3(0.5, 1.0, 0.5f));
+
+
+           
 
             // --- STAMINA: Disegna la barra della stamina ---
             std::string staminaBar = "Stamina: [";
@@ -429,7 +458,7 @@ int main() {
             // Mostra la barra solo se il Minotauro è nel raggio di avviso e di fronte al giocatore
             // Logica per Barra Vita / Messaggio Sconfitta Minotauro
             if (victoryMessageTimer.IsActive()) {
-                RenderText("Minotaur Sconfitto", SCR_WIDTH / 2.0f - 120.0f, SCR_HEIGHT - 50.0f, 0.8f, glm::vec3(0.5, 1.0, 0.5f));
+                RenderText("Minotauro Sconfitto", SCR_WIDTH / 2.0f - 120.0f, SCR_HEIGHT - 50.0f, 0.8f, glm::vec3(0.5, 1.0, 0.5f));
             }
 
             else if (minotaur.health > 0) {
@@ -460,6 +489,26 @@ int main() {
                 }
 
             }
+
+            // --- AGGIUNTA CASSE: Logica per i messaggi a schermo ---
+            bool canOpenChest = false;
+            if (currentState == GameState::PLAYING) {
+                for (const auto& chest : chests) {
+                    if (!chest.isOpen && glm::distance(camera.Position, chest.position) < 2.5f) {
+                        canOpenChest = true;
+                        break;
+                    }
+                }
+            }
+            if (canOpenChest) {
+                RenderText("Apri la cassa (E)", SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0f));
+            }
+
+            if (powerUpMessageTimer.IsActive()) {
+                RenderText(lastPowerUpMessage.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
+            }
+
+
 
             if (currentState == GameState::GAME_OVER) {
                 RenderText("SEI MORTO", SCR_WIDTH / 2.0f - 150.0f, SCR_HEIGHT / 2.0f, 2.0f, glm::vec3(1.0, 0.1, 0.1));
@@ -545,6 +594,7 @@ void PlayerTakeDamage(float damage) {
 // In main.cpp
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (currentState != GameState::PLAYING) return;
+
     GameContext* context = static_cast<GameContext*>(glfwGetWindowUserPointer(window));
     if (!context) return;
 
@@ -554,18 +604,14 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
         float SWORD_ATTACK_RANGE = 3.5f;
         if (glm::distance(context->camera->Position, context->minotaur->position) < SWORD_ATTACK_RANGE) {
-
             bool minotaurWasAlive = context->minotaur->health > 0;
-            context->minotaur->TakeDamage(20.0f);
+            context->minotaur->TakeDamage(playerAttackDamage); // Usa la variabile per il danno
 
             if (context->minotaur->health > 0) {
                 if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
             }
-            // Controlla se era vivo PRIMA di questo colpo e ora non lo è più
             else if (minotaurWasAlive) {
                 if (minotaurDeathSound) SoundEngine->play2D(minotaurDeathSound, false);
-
-                // --- FAI PARTIRE IL TIMER DEL MESSAGGIO ---
                 victoryMessageTimer.Start();
             }
         }
@@ -575,14 +621,24 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void ResetGame(Camera& cam, Minotaur& minotaur) {
     std::cout << "--- GAME RESET ---" << std::endl;
     playerHealth = PLAYER_MAX_HEALTH;
+    playerStamina = PLAYER_MAX_STAMINA;
+    playerAttackDamage = 25.0f; // Resetta il danno
+    
     cam.Reset();
     minotaur.Reset();
+    
+    // Ricarica le casse per la nuova partita
+    glm::vec3 minoStart;
+    loadLevelData(minoStart);
+
     SoundEngine->stopAllSounds();
     if (mainTheme) SoundEngine->play2D(mainTheme, true);
+    
     firstMouse = true;
-    showHint = false;
     hintPath.clear();
     hintTimer = 0.0f;
+    victoryMessageTimer.Stop();
+    powerUpMessageTimer.Stop();
 }
 
 void FindPathForHint(glm::vec2 start, glm::vec2 target, std::vector<glm::vec3>& path) {
@@ -672,6 +728,7 @@ void processInput(GLFWwindow* window) {
     if (!context) return;
     Minotaur& minotaur = *context->minotaur;
     Camera& camera = *context->camera;
+    std::vector<Chest>& chests = *context->chests;
 
     switch (currentState) {
     case GameState::MENU:
@@ -695,6 +752,30 @@ void processInput(GLFWwindow* window) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             SoundEngine->stopAllSounds();
             break;
+        }
+
+        // Logica per le casse (ora 'chests' è definito)
+        static bool e_key_pressed = false;
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS && !e_key_pressed) {
+            for (auto& chest : chests) {
+                if (!chest.isOpen && glm::distance(camera.Position, chest.position) < 2.5f) {
+                    chest.Open();
+                    if (chest.powerUp == PowerUpType::HEALTH_BOOST) {
+                        playerHealth = PLAYER_MAX_HEALTH;
+                        lastPowerUpMessage = "Nettare degli Dei! Salute ripristinata!";
+                    }
+                    else if (chest.powerUp == PowerUpType::DAMAGE_BOOST) {
+                        playerAttackDamage += 15.0f;
+                        lastPowerUpMessage = "Furia di Ares! Danno aumentato!";
+                    }
+                    powerUpMessageTimer.Start();
+                    break;
+                }
+            }
+            e_key_pressed = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_RELEASE) {
+            e_key_pressed = false;
         }
 
         if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
@@ -812,12 +893,25 @@ void processInput(GLFWwindow* window) {
 
 
 void loadLevelData(glm::vec3& minotaurSpawnPos) {
+    // Pulisci le casse dalla partita precedente
+    if (chestModel_ptr) {
+        chests.clear();
+    }
+
     minotaurSpawnPos = glm::vec3(-1.0f);
     for (int y = 0; y < MAZE_HEIGHT; ++y) {
         for (int x = 0; x < MAZE_WIDTH; ++x) {
             maze[y][x].wall = (initial_maze_map[y][x] == 1);
+
+            float worldX = x * CELL_SIZE + CELL_SIZE / 2.0f;
+            float worldZ = y * CELL_SIZE + CELL_SIZE / 2.0f;
+
             if (initial_maze_map[y][x] == 2) {
-                minotaurSpawnPos = glm::vec3(x * CELL_SIZE + CELL_SIZE / 2.0f, 0.0f, y * CELL_SIZE + CELL_SIZE / 2.0f);
+                minotaurSpawnPos = glm::vec3(worldX, 0.0f, worldZ);
+            }
+            else if (initial_maze_map[y][x] == 4 && chestModel_ptr) {
+                // Se troviamo una cassa (4), la creiamo e la aggiungiamo al vettore
+                chests.emplace_back(*chestModel_ptr, glm::vec3(worldX, 0.0f, worldZ));
             }
         }
     }
@@ -825,6 +919,8 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
         minotaurSpawnPos = glm::vec3(10.0f, 0.0f, 10.0f);
     }
 }
+
+
 
 bool checkWallCollision(glm::vec3 checkPos) {
     int gridX = static_cast<int>(floor(checkPos.x / CELL_SIZE));
