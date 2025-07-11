@@ -413,6 +413,7 @@ int main() {
             modelShader.use();
             modelShader.setMat4("projection", projection);
             modelShader.setMat4("view", view);
+
             for (auto& chest : chests) {
                 chest.Draw(modelShader);
             }
@@ -911,7 +912,7 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
             }
             else if (initial_maze_map[y][x] == 4 && chestModel_ptr) {
                 // Se troviamo una cassa (4), la creiamo e la aggiungiamo al vettore
-                chests.emplace_back(*chestModel_ptr, glm::vec3(worldX, 0.0f, worldZ));
+                chests.emplace_back(*chestModel_ptr, glm::vec3(worldX, 0.5f, worldZ));
             }
         }
     }
