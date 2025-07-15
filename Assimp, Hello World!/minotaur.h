@@ -85,7 +85,7 @@ public:
         mazeLayout(maze),
         orientation(0.0f),
         speed(2.9f),
-        health(900.0f),
+        health(2000.0f),
         collisionRadius(0.45f),
         currentState(State::IDLE),
         stateTimer(0.0f),

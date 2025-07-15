@@ -140,5 +140,11 @@
     <ClInclude Include="chest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dungeon_room.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="enemy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

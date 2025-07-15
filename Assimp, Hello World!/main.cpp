@@ -35,6 +35,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "timer.h"
+#include "dungeon_room.h"
+#include "enemy.h"
 
 using namespace irrklang;
 
@@ -44,6 +46,7 @@ struct GameContext {
     Minotaur* minotaur;
     Camera* camera;
     std::vector<Chest>* chests; // <-- NUOVO PUNTATORE
+    std::vector<DungeonRoom>* dungeonRooms; //nuovo
 };
 
 // --- STATO DEL GIOCO ---
@@ -71,6 +74,9 @@ float playerAttackDamage = 25.0f; // <-- NUOVA VARIABILE per il danno
 
 // --- NUOVO TIMER PER MESSAGGIO VITTORIA ---
 Timer victoryMessageTimer(5.0f); // Il messaggio dura 5 secondi
+
+std::vector<DungeonRoom> dungeonRooms;
+Model* enemyModel_ptr = nullptr;
 
 // --- Variabili per le Casse ---
 std::vector<Chest> chests;
@@ -181,6 +187,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void loadLevelData(glm::vec3& minotaurSpawnPos);
 bool checkWallCollision(glm::vec3 checkPos);
 bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur);
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur); //nuovo
 void setupMazeGeometryVAOs();
 void setupMenuVAO();
 void ResetGame(Camera& cam, Minotaur& minotaur);
@@ -238,6 +245,9 @@ int main() {
 
     // Carica il modello della cassa
     chestModel_ptr = new Model("resources/chest/chest.glb");
+
+    // --- AGGIUNGI QUESTA RIGA QUI ---
+    enemyModel_ptr = new Model("resources/enemy/golem.glb");
 
     glm::vec3 minotaurStartPosition;
     loadLevelData(minotaurStartPosition);
@@ -332,6 +342,9 @@ int main() {
             if (currentState == GameState::PLAYING) {
                 sword.Update(deltaTime);
                 minotaur.Update(deltaTime, camera.Position);
+                for (auto& room : dungeonRooms) {
+                    room.Update(deltaTime, camera.Position);
+                }
                 if (showHint) {
                     hintTimer -= deltaTime;
                     if (hintTimer <= 0.0f) {
@@ -371,6 +384,8 @@ int main() {
             glBindVertexArray(VAO_floor);
             mazeShader.setMat4("model", glm::mat4(1.0f));
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+
 
             if (showHint && !hintPath.empty()) {
                 hintShader->use();
@@ -420,8 +435,23 @@ int main() {
             modelShader.setMat4("projection", projection);
             modelShader.setMat4("view", view);
 
-            for (auto& chest : chests) {
-                chest.Draw(modelShader);
+            // --- CORREZIONE: Render delle Casse e dei loro Nemici ---
+            for (auto& room : dungeonRooms) {
+                // Disegna la cassa della stanza
+                modelShader.use(); // Usa lo shader per modelli statici
+                modelShader.setMat4("projection", projection);
+                modelShader.setMat4("view", view);
+                modelShader.setVec3("viewPos", camera.Position);
+                room.chest.Draw(modelShader);
+
+                // Disegna i nemici della stanza
+                modelShader.use(); // Usa lo shader per modelli statici (o animModelShader se sono animati)
+                modelShader.setMat4("projection", projection);
+                modelShader.setMat4("view", view);
+                modelShader.setVec3("viewPos", camera.Position);
+                for (auto& enemy : room.enemies) {
+                    enemy.Draw(modelShader);
+                }
             }
 
             lampShader.use();
@@ -459,9 +489,6 @@ int main() {
             RenderText(staminaBar.c_str(), 10.0f, SCR_HEIGHT - 75.0f, 0.6f, glm::vec3(0.9, 0.9, 0.2));
 
             // --- NUOVA LOGICA PER BARRA VITA MINOTAURO ---
-
-            
-
             // Mostra la barra solo se il Minotauro è nel raggio di avviso e di fronte al giocatore
             // Logica per Barra Vita / Messaggio Sconfitta Minotauro
             if (victoryMessageTimer.IsActive()) {
@@ -499,20 +526,29 @@ int main() {
 
             // --- AGGIUNTA CASSE: Logica per i messaggi a schermo ---
             bool canOpenChest = false;
+            bool chestIsLocked = false;
             if (currentState == GameState::PLAYING) {
-                for (const auto& chest : chests) {
-                    if (!chest.isOpen && glm::distance(camera.Position, chest.position) < 2.5f) {
+                for (const auto& room : dungeonRooms) {
+                    if (!room.chest.isOpen && glm::distance(camera.Position, room.chest.position) < 2.5f) {
                         canOpenChest = true;
+                        if (room.chest.isLocked) {
+                            chestIsLocked = true;
+                        }
                         break;
                     }
                 }
             }
             if (canOpenChest) {
-                RenderText("Apri la cassa (E)", SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0f));
+                if (chestIsLocked) {
+                    RenderText("La cassa e' bloccata, sconfiggi i guardiani!", SCR_WIDTH / 2.0f - 220.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.5, 0.0));
+                }
+                else {
+                    RenderText("Apri la cassa (E)", SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0f));
+                }
             }
 
             if (powerUpMessageTimer.IsActive()) {
-                RenderText(lastPowerUpMessage.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
+                RenderText(lastPowerUpMessage.c_str(), SCR_WIDTH / 2.0f - 250.0f, 50.0f, 0.8f, glm::vec3(0.2, 1.0, 1.0));
             }
 
 
@@ -638,6 +674,11 @@ void ResetGame(Camera& cam, Minotaur& minotaur) {
     glm::vec3 minoStart;
     loadLevelData(minoStart);
 
+    // Resetta ogni stanza dungeon (che a sua volta resetta casse e nemici)
+    for (auto& room : dungeonRooms) {
+        room.Reset();
+    }
+
     SoundEngine->stopAllSounds();
     if (mainTheme) SoundEngine->play2D(mainTheme, true);
     
@@ -735,7 +776,8 @@ void processInput(GLFWwindow* window) {
     if (!context) return;
     Minotaur& minotaur = *context->minotaur;
     Camera& camera = *context->camera;
-    std::vector<Chest>& chests = *context->chests;
+    //std::vector<Chest>& chests = *context->chests;
+    std::vector<DungeonRoom>& rooms = *context->dungeonRooms;
 
     switch (currentState) {
     case GameState::MENU:
@@ -761,21 +803,22 @@ void processInput(GLFWwindow* window) {
             break;
         }
 
-        // Logica per le casse (ora 'chests' è definito)
         static bool e_key_pressed = false;
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS && !e_key_pressed) {
-            for (auto& chest : chests) {
-                if (!chest.isOpen && glm::distance(camera.Position, chest.position) < 2.5f) {
-                    chest.Open();
-                    if (chest.powerUp == PowerUpType::HEALTH_BOOST) {
-                        playerHealth = PLAYER_MAX_HEALTH;
-                        lastPowerUpMessage = "Nettare degli Dei! Salute ripristinata!";
+            for (auto& room : rooms) {
+                if (!room.chest.isOpen && glm::distance(camera.Position, room.chest.position) < 2.5f) {
+                    room.chest.Open();
+                    if (!room.chest.isLocked) {
+                        if (room.chest.powerUp == PowerUpType::HEALTH_BOOST) {
+                            playerHealth = PLAYER_MAX_HEALTH;
+                            lastPowerUpMessage = "Nettare degli Dei! Salute ripristinata!";
+                        }
+                        else if (room.chest.powerUp == PowerUpType::DAMAGE_BOOST) {
+                            playerAttackDamage += 15.0f;
+                            lastPowerUpMessage = "Furia di Ares! Danno aumentato!";
+                        }
+                        powerUpMessageTimer.Start();
                     }
-                    else if (chest.powerUp == PowerUpType::DAMAGE_BOOST) {
-                        playerAttackDamage += 15.0f;
-                        lastPowerUpMessage = "Furia di Ares! Danno aumentato!";
-                    }
-                    powerUpMessageTimer.Start();
                     break;
                 }
             }
@@ -927,9 +970,24 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
             if (initial_maze_map[y][x] == 2) {
                 minotaurSpawnPos = glm::vec3(worldX, 0.0f, worldZ);
             }
-            else if (initial_maze_map[y][x] == 4 && chestModel_ptr) {
+            else if (initial_maze_map[y][x] == 4 && chestModel_ptr && enemyModel_ptr) {
                 // Se troviamo una cassa (4), la creiamo e la aggiungiamo al vettore
-                chests.emplace_back(*chestModel_ptr, glm::vec3(worldX, 0.5f, worldZ));
+                //chests.emplace_back(*chestModel_ptr, glm::vec3(worldX, 0.5f, worldZ));
+                // Definisce i confini della stanza (es. un'area 5x5 intorno al marcatore)
+                glm::vec4 bounds = {
+                    (x - 2) * CELL_SIZE, (x + 3) * CELL_SIZE,
+                    (y - 2) * CELL_SIZE, (y + 3) * CELL_SIZE
+                };
+
+                // Crea la cassa al centro della stanza (altezza sistemata)
+                Chest chest(*chestModel_ptr, glm::vec3(worldX, 0.5f, worldZ));
+
+                // Crea i nemici guardiani ai lati della cassa
+                std::vector<Enemy> enemies;
+                enemies.emplace_back(*enemyModel_ptr, glm::vec3(worldX - 1.5f, 0.0f, worldZ - 1.5f), bounds);
+                enemies.emplace_back(*enemyModel_ptr, glm::vec3(worldX + 1.5f, 0.0f, worldZ + 1.5f), bounds);
+
+                dungeonRooms.emplace_back(chest, std::move(enemies), bounds);
             }
         }
     }
@@ -967,6 +1025,30 @@ bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
         }
     }
     return false;
+}
+
+//nuovo
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
+    // 1. Collisione con i muri
+    if (checkWallCollision(checkPos)) return true;
+
+    // 2. Collisione con il Minotauro
+    if (checkMinotaurCollision(checkPos, minotaur)) return true;
+
+    // 3. Collisione con i nemici delle stanze
+    for (const auto& room : dungeonRooms) {
+        if (room.state == DungeonRoom::RoomState::ACTIVE) {
+            for (const auto& enemy : room.enemies) {
+                if (enemy.health > 0) {
+                    if (glm::distance(glm::vec2(checkPos.x, checkPos.z), glm::vec2(enemy.position.x, enemy.position.z)) < enemy.collisionRadius + CAMERA_COLLISION_RADIUS) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false; // Nessuna collisione
 }
 
 // Funzione per caricare una texture da un file
