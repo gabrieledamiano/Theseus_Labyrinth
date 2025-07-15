@@ -68,6 +68,7 @@ float playerHealth = 100.0f;
 const float PLAYER_MAX_HEALTH = 100.0f;
 float playerAttackDamage = 25.0f; // <-- NUOVA VARIABILE per il danno
 
+
 // --- NUOVO TIMER PER MESSAGGIO VITTORIA ---
 Timer victoryMessageTimer(5.0f); // Il messaggio dura 5 secondi
 
@@ -139,7 +140,7 @@ unsigned int VAO_lamp, menuVAO, menuVBO;
 unsigned int textureWall, textureFloor, textureCeiling, menuTexture, endMenuTexture;
 unsigned int textureNormalWall, textureNormalFloor, textureNormalCeiling;
 
-const int NR_SPOT_LIGHTS = 12;
+const int NR_SPOT_LIGHTS = 20;
 glm::vec3 spotLightPositions[NR_SPOT_LIGHTS];
 glm::vec3 spotLightDirection = glm::vec3(0.0f, -1.0f, 0.0f);
 glm::vec3 spotLightAmbient = glm::vec3(0.4f, 0.2f, 0.1f);
@@ -245,18 +246,23 @@ int main() {
     Minotaur minotaur(minotaurModel, minotaurStartPosition, maze);
 
     float lightHeight = WALL_HEIGHT - 0.1f;
-    spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
-    if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(24.00f, lightHeight, 2.00f);
-    if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(1.77f, lightHeight, 19.19f);
-    if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(10.15f, lightHeight, 14.72f);
-    if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(7.92f, lightHeight, 3.38f);
-    if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(9.35f, lightHeight, 23.76f);
-    if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(22.05f, lightHeight, 26.63f);
-    if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(18.24f, lightHeight, 38.60f);
-    if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(6.32f, lightHeight, 33.29f);
-    if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(1.72f, lightHeight, 49.05f);
-    if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(8.05f, lightHeight, 51.28f);
-    if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(27.81f, lightHeight, 58.26f);
+    //spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
+    if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.03918f, lightHeight, 2.43882f);
+    if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(2.03109f, lightHeight, 23.1429f);
+    if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(12.167f, lightHeight, 14.8177f);
+    if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(17.7564f, lightHeight, 25.4229f);
+    if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(11.2421f, lightHeight, 28.5234f);
+    if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(9.20282f, lightHeight, 3.86636f);
+    if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(28.7836f, lightHeight, 2.01158f);
+    if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(25.5885f, lightHeight, 12.5597f);
+    if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(30.0438f, lightHeight, 41.6945f);
+    if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(4.65741f, lightHeight, 31.8666f);
+    if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(17.7664f, lightHeight, 42.9045f);
+    if (NR_SPOT_LIGHTS > 12) spotLightPositions[12] = glm::vec3(7.44922f, lightHeight, 39.807f);
+    if (NR_SPOT_LIGHTS > 13) spotLightPositions[13] = glm::vec3(2.04897f, lightHeight, 59.1026f);
+    if (NR_SPOT_LIGHTS > 14) spotLightPositions[14] = glm::vec3(23.1384f, lightHeight, 50.7383f);
+    if (NR_SPOT_LIGHTS > 15) spotLightPositions[15] = glm::vec3(9.20907f, lightHeight, 61.4568f);
+    if (NR_SPOT_LIGHTS > 16) spotLightPositions[16] = glm::vec3(30.5345f, lightHeight, 60.612f);
 
     textureWall = loadtexture("resources/textures/lab_wall_diffuse.jpg");
     textureNormalWall = loadtexture("resources/textures/lab_wall_normal.jpg");
@@ -803,6 +809,17 @@ void processInput(GLFWwindow* window) {
                     }
                 }
             }
+        }
+
+        // --- Logica per mostrare le coordinate nel prompt con il tasto 'P' ---
+        static bool p_key_pressed = false;
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !p_key_pressed) {
+            p_key_pressed = true;
+            // Stampa le coordinate direttamente sulla console
+            std::cout << "Posizione Giocatore -> X: " << camera.Position.x << ", Z: " << camera.Position.z << std::endl;
+        }
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE) {
+            p_key_pressed = false;
         }
 
         // --- INIZIO LOGICA STAMINA E SCATTO ---
