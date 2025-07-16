@@ -532,7 +532,7 @@ int main() {
             bool chestIsLocked = false;
             if (currentState == GameState::PLAYING) {
                 for (const auto& room : dungeonRooms) {
-                    if (!room.chest.isOpen && glm::distance(camera.Position, room.chest.position) < 2.5f) {
+                    if (!room.chest.isCollected && glm::distance(camera.Position, room.chest.position) < 2.5f) {
                         canOpenChest = true;
                         if (room.chest.isLocked) {
                             chestIsLocked = true;
@@ -878,7 +878,7 @@ void processInput(GLFWwindow* window) {
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS && !e_key_pressed_debounce) {
             e_key_pressed_debounce = true;
             for (auto& room : rooms) {
-                if (!room.chest.isOpen && glm::distance(camera.Position, room.chest.position) < 2.5f) {
+                if (!room.chest.isCollected && glm::distance(camera.Position, room.chest.position) < 2.5f) {
 
                     if (room.chest.Open()) { // Open() restituisce true solo se l'apertura ha successo
                         if (room.chest.powerUp == PowerUpType::HEALTH_BOOST) {

@@ -1,3 +1,4 @@
+// CHEST.H
 #pragma once
 #ifndef CHEST_H
 #define CHEST_H
@@ -8,7 +9,6 @@
 #include "model.h"
 #include "shader_m.h"
 
-// Definiamo i tipi di potenziamenti possibili
 enum class PowerUpType {
     NONE,
     HEALTH_BOOST,
@@ -21,11 +21,12 @@ public:
     glm::vec3 position;
     bool isOpen;
     bool isLocked;
-
+    bool isCollected; // Aggiunto flag per raccolta completata
     PowerUpType powerUp;
 
     Chest(Model& model, glm::vec3 pos)
-        : chestModel(model), position(pos), isOpen(false), isLocked(true), powerUp(PowerUpType::NONE)
+        : chestModel(model), position(pos), isOpen(false), isLocked(true),
+        isCollected(false), powerUp(PowerUpType::NONE) // Inizializza isCollected a false
     {
         if ((rand() % 2) == 0) {
             powerUp = PowerUpType::HEALTH_BOOST;
@@ -35,22 +36,21 @@ public:
         }
     }
 
-    // --- FUNZIONE OPEN CORRETTA CHE RESTITUISCE UN RISULTATO ---
     bool Open() {
         if (isLocked) {
-            std::cout << "La cassa e' bloccata!" << std::endl;
-            // Aggiungi un suono di "bloccato"
-            return false; // Apertura fallita
-        }
-        if (isOpen) {
-            return false; // Già aperta, fallimento
+            std::cout << "La cassa è bloccata!" << std::endl;
+            return false;
         }
 
-        // Se non è bloccata e non è aperta, la apre e restituisce successo
+        // MODIFICA: Controlla anche isCollected
+        if (isOpen || isCollected) {
+            return false;
+        }
+
         isOpen = true;
+        isCollected = true; // IMPOSTA A TRUE DOPO L'APERTURA
         std::cout << "Cassa aperta! Contiene: " << GetPowerUpName() << std::endl;
-        // Aggiungi un suono di apertura
-        return true; // Apertura riuscita!
+        return true;
     }
 
     std::string GetPowerUpName() const {
@@ -64,10 +64,12 @@ public:
     void Reset() {
         isOpen = false;
         isLocked = true;
+        isCollected = false; // Resetta anche isCollected
     }
 
     void Draw(Shader& shader) {
-        if (isOpen) return;
+        // MODIFICA: Non disegnare se la cassa è stata raccolta
+        if (isCollected) return;
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, position);
