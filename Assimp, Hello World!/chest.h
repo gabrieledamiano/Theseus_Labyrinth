@@ -8,11 +8,11 @@
 #include "model.h"
 #include "shader_m.h"
 
-// Tipi di potenziamenti possibili
+// Definiamo i tipi di potenziamenti possibili
 enum class PowerUpType {
     NONE,
-    HEALTH_BOOST,   // Nettare degli Dei
-    DAMAGE_BOOST    // Furia di Ares
+    HEALTH_BOOST,
+    DAMAGE_BOOST
 };
 
 class Chest {
@@ -20,14 +20,13 @@ public:
     Model& chestModel;
     glm::vec3 position;
     bool isOpen;
-    bool isLocked; // true se non può essere aperta
+    bool isLocked;
 
     PowerUpType powerUp;
 
     Chest(Model& model, glm::vec3 pos)
         : chestModel(model), position(pos), isOpen(false), isLocked(true), powerUp(PowerUpType::NONE)
     {
-        // Assegna un power-up casuale
         if ((rand() % 2) == 0) {
             powerUp = PowerUpType::HEALTH_BOOST;
         }
@@ -36,15 +35,22 @@ public:
         }
     }
 
-    void Open() {
+    // --- FUNZIONE OPEN CORRETTA CHE RESTITUISCE UN RISULTATO ---
+    bool Open() {
         if (isLocked) {
-            std::cout << "La cassa e' bloccata! Sconfiggi i guardiani." << std::endl;
-            return;
+            std::cout << "La cassa e' bloccata!" << std::endl;
+            // Aggiungi un suono di "bloccato"
+            return false; // Apertura fallita
         }
-        if (!isOpen) {
-            isOpen = true;
-            std::cout << "Cassa aperta! Contiene: " << GetPowerUpName() << std::endl;
+        if (isOpen) {
+            return false; // Già aperta, fallimento
         }
+
+        // Se non è bloccata e non è aperta, la apre e restituisce successo
+        isOpen = true;
+        std::cout << "Cassa aperta! Contiene: " << GetPowerUpName() << std::endl;
+        // Aggiungi un suono di apertura
+        return true; // Apertura riuscita!
     }
 
     std::string GetPowerUpName() const {

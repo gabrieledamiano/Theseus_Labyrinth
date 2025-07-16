@@ -21,20 +21,33 @@
 #include "shader_m.h"
 #include "animator.h"
 #include "bone.h"
+#include "assimp_glm_helpers.h" // Assumo che tu abbia questo helper
 
 using namespace std;
 
+// Dichiarazioni delle funzioni helper
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
+unsigned int TextureFromMemory(const aiTexture* aiTex); // <-- NUOVA FUNZIONE HELPER
 
 class Model
 {
 public:
+    // Dati del modello
     vector<Texture> textures_loaded;
     vector<Mesh>    meshes;
     string directory;
-
     std::map<string, Animation*> m_Animations;
 
+private:
+    // <-- MODIFICA 1: Aggiunto un puntatore alla scena di Assimp -->
+    // Serve per accedere alle texture incorporate da qualsiasi punto della classe.
+    const aiScene* m_scene;
+
+    // Dati per l'animazione
+    std::map<string, BoneInfo> m_BoneInfoMap;
+    int m_BoneCounter = 0;
+
+public:
     Model(string const& path)
     {
         loadModel(path);
@@ -42,11 +55,9 @@ public:
 
     ~Model()
     {
-        // --- MODIFICA CHIAVE QUI ---
-        // Sintassi C++14 compatibile per iterare sulla mappa
         for (auto const& pair : m_Animations)
         {
-            delete pair.second; // pair.second è il puntatore all'animazione
+            delete pair.second;
         }
     }
 
@@ -71,20 +82,19 @@ public:
     int& GetBoneCount() { return m_BoneCounter; }
 
 private:
-    std::map<string, BoneInfo> m_BoneInfoMap;
-    int m_BoneCounter = 0;
-
     void loadModel(string const& path)
     {
         Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
-        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+        // Salva la scena nel membro della classe invece che in una variabile locale
+        m_scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+
+        if (!m_scene || m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_scene->mRootNode)
         {
             cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << endl;
             return;
         }
         directory = path.substr(0, path.find_last_of('/'));
-        processNode(scene->mRootNode, scene);
+        processNode(m_scene->mRootNode, m_scene);
     }
 
     void processNode(aiNode* node, const aiScene* scene)
@@ -167,7 +177,7 @@ private:
 
     void ExtractBoneWeightForVertices(std::vector<Vertex>& vertices, aiMesh* mesh, const aiScene* scene)
     {
-        for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
+        for (unsigned int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
         {
             int boneID = -1;
             std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
@@ -206,6 +216,7 @@ private:
         }
     }
 
+    // <-- MODIFICA 2: Aggiornata la funzione per caricare le texture -->
     vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName)
     {
         vector<Texture> textures;
@@ -226,7 +237,23 @@ private:
             if (!skip)
             {
                 Texture texture;
-                texture.id = TextureFromFile(str.C_Str(), this->directory);
+                // Controlla se il percorso inizia con '*', indicando una texture incorporata
+                if (str.C_Str()[0] == '*') {
+                    cout << "Loading embedded texture: " << str.C_Str() << endl;
+                    const aiTexture* embeddedTexture = m_scene->GetEmbeddedTexture(str.C_Str());
+                    if (embeddedTexture) {
+                        texture.id = TextureFromMemory(embeddedTexture);
+                    }
+                    else {
+                        cout << "ERROR::MODEL::COULD_NOT_LOAD_EMBEDDED_TEXTURE: " << str.C_Str() << endl;
+                        continue;
+                    }
+                }
+                else {
+                    // Altrimenti, carica la texture da un file come prima
+                    texture.id = TextureFromFile(str.C_Str(), this->directory);
+                }
+
                 texture.type = typeName;
                 texture.path = str.C_Str();
                 textures.push_back(texture);
@@ -236,4 +263,49 @@ private:
         return textures;
     }
 };
+
+// <-- MODIFICA 3: Aggiunta la definizione della funzione TextureFromMemory -->
+inline unsigned int TextureFromMemory(const aiTexture* aiTex) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char* data = nullptr;
+
+    if (aiTex->mHeight == 0) {
+        data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTex->pcData), aiTex->mWidth, &width, &height, &nrComponents, 0);
+    }
+    else {
+        data = reinterpret_cast<unsigned char*>(aiTex->pcData);
+        width = aiTex->mWidth;
+        height = aiTex->mHeight;
+        nrComponents = 4;
+    }
+
+    if (data) {
+        GLenum format;
+        if (nrComponents == 1) format = GL_RED;
+        else if (nrComponents == 3) format = GL_RGB;
+        else if (nrComponents == 4) format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        if (aiTex->mHeight == 0) {
+            stbi_image_free(data);
+        }
+    }
+    else {
+        cout << "Texture from memory failed to load." << endl;
+    }
+
+    return textureID;
+}
+
 #endif

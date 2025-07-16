@@ -121,7 +121,7 @@ public:
         model = glm::translate(model, position);
         model = glm::rotate(model, glm::radians(orientation), glm::vec3(0.0f, 1.0f, 0.0f));
         model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.10f)); // Scala ridotta per i nemici
+        model = glm::scale(model, glm::vec3(0.20f)); 
         shader.setMat4("model", model);
         enemyModel.Draw(shader);
     }

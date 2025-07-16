@@ -45,7 +45,7 @@ struct GameContext {
     Sword* sword;
     Minotaur* minotaur;
     Camera* camera;
-    std::vector<Chest>* chests; // <-- NUOVO PUNTATORE
+    //std::vector<Chest>* chests; // <-- NUOVO PUNTATORE
     std::vector<DungeonRoom>* dungeonRooms; //nuovo
 };
 
@@ -308,7 +308,10 @@ int main() {
     if (mainTheme) SoundEngine->play2D(mainTheme, true);
 
     // Inizializza il GameContext con il puntatore alle casse
-    GameContext context = { &sword, &minotaur, &camera, &chests };
+    //GameContext context = { &sword, &minotaur, &camera, &chests };
+
+    // Inizializza il GameContext con i puntatori corretti
+    GameContext context = { &sword, &minotaur, &camera, &dungeonRooms };
     glfwSetWindowUserPointer(window, &context);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -548,7 +551,51 @@ int main() {
             }
 
             if (powerUpMessageTimer.IsActive()) {
-                RenderText(lastPowerUpMessage.c_str(), SCR_WIDTH / 2.0f - 250.0f, 50.0f, 0.8f, glm::vec3(0.2, 1.0, 1.0));
+                RenderText(lastPowerUpMessage.c_str(), SCR_WIDTH / 2.0f - 220.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.5, 0.0));
+            }
+
+            // --- LOGICA PER BARRE VITA NEMICI VISIBILI ---
+            float healthBarYOffset = SCR_HEIGHT - 40.0f; // Posizione Y di partenza per la prima barra
+            int visibleEnemyCount = 0;
+
+            // Prima, identifica quali nemici sono visibili
+            std::vector<const Enemy*> visibleEnemies;
+            if (currentState == GameState::PLAYING) {
+                for (const auto& room : dungeonRooms) {
+                    if (room.state == DungeonRoom::RoomState::ACTIVE) {
+                        for (const auto& enemy : room.enemies) {
+                            if (enemy.health > 0) {
+                                float distanceToEnemy = glm::distance(camera.Position, enemy.position);
+                                glm::vec3 toEnemyDir = glm::normalize(enemy.position - camera.Position);
+                                float dotProduct = glm::dot(camera.Front, toEnemyDir);
+
+                                // Aggiungi alla lista solo se è vicino e di fronte
+                                if (distanceToEnemy < enemy.NOTICE_RANGE && dotProduct > 0.4f) {
+                                    visibleEnemies.push_back(&enemy);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Ora, disegna una barra per ogni nemico nella lista dei visibili
+            if (!visibleEnemies.empty()) {
+                RenderText("Guardiani:", SCR_WIDTH - 250.0f, healthBarYOffset, 0.6f, glm::vec3(1.0, 0.5, 0.5));
+                healthBarYOffset -= 25.0f;
+
+                for (const auto* enemyPtr : visibleEnemies) {
+                    std::string enemyHealthBar = "[";
+                    int barWidth = 15;
+                    int filledWidth = static_cast<int>((enemyPtr->health / 50.0f) * barWidth);
+                    for (int i = 0; i < barWidth; ++i) {
+                        enemyHealthBar += (i < filledWidth) ? '#' : ' ';
+                    }
+                    enemyHealthBar += "]";
+
+                    RenderText(enemyHealthBar.c_str(), SCR_WIDTH - 250.0f, healthBarYOffset, 0.5f, glm::vec3(0.9, 0.9, 0.9));
+                    healthBarYOffset -= 20.0f;
+                }
             }
 
 
@@ -645,10 +692,12 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         context->sword->Attack();
         if (attackSound) SoundEngine->play2D(attackSound, false);
 
-        float SWORD_ATTACK_RANGE = 3.5f;
-        if (glm::distance(context->camera->Position, context->minotaur->position) < SWORD_ATTACK_RANGE) {
+        const float SWORD_ATTACK_RANGE = 3.5f;
+
+        // Controlla se il colpo raggiunge il Minotauro
+        if (context->minotaur->health > 0 && glm::distance(context->camera->Position, context->minotaur->position) < SWORD_ATTACK_RANGE) {
             bool minotaurWasAlive = context->minotaur->health > 0;
-            context->minotaur->TakeDamage(playerAttackDamage); // Usa la variabile per il danno
+            context->minotaur->TakeDamage(playerAttackDamage);
 
             if (context->minotaur->health > 0) {
                 if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
@@ -656,6 +705,28 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             else if (minotaurWasAlive) {
                 if (minotaurDeathSound) SoundEngine->play2D(minotaurDeathSound, false);
                 victoryMessageTimer.Start();
+            }
+        }
+
+        // --- NUOVA LOGICA: Controlla se il colpo raggiunge i nemici delle stanze ---
+        for (auto& room : *context->dungeonRooms) {
+            // Controlla i nemici solo se la stanza è attiva
+            if (room.state == DungeonRoom::RoomState::ACTIVE) {
+                for (auto& enemy : room.enemies) {
+                    // Controlla solo i nemici vivi e nel raggio d'azione
+                    if (enemy.health > 0 && glm::distance(context->camera->Position, enemy.position) < SWORD_ATTACK_RANGE) {
+                        enemy.TakeDamage(playerAttackDamage);
+                        std::cout << "Colpito guardiano! Salute rimanente: " << enemy.health << std::endl;
+
+                        // Puoi usare lo stesso suono di colpo o uno diverso
+                        if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
+
+                        // Se il nemico muore, potresti far partire un suono di morte specifico
+                        if (enemy.health <= 0) {
+                            std::cout << "Guardiano sconfitto!" << std::endl;
+                        }
+                    }
+                }
             }
         }
     }
@@ -803,12 +874,13 @@ void processInput(GLFWwindow* window) {
             break;
         }
 
-        static bool e_key_pressed = false;
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS && !e_key_pressed) {
+        static bool e_key_pressed_debounce = false;
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS && !e_key_pressed_debounce) {
+            e_key_pressed_debounce = true;
             for (auto& room : rooms) {
                 if (!room.chest.isOpen && glm::distance(camera.Position, room.chest.position) < 2.5f) {
-                    room.chest.Open();
-                    if (!room.chest.isLocked) {
+
+                    if (room.chest.Open()) { // Open() restituisce true solo se l'apertura ha successo
                         if (room.chest.powerUp == PowerUpType::HEALTH_BOOST) {
                             playerHealth = PLAYER_MAX_HEALTH;
                             lastPowerUpMessage = "Nettare degli Dei! Salute ripristinata!";
@@ -822,11 +894,11 @@ void processInput(GLFWwindow* window) {
                     break;
                 }
             }
-            e_key_pressed = true;
         }
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_RELEASE) {
-            e_key_pressed = false;
+            e_key_pressed_debounce = false;
         }
+
 
         if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
             if (!showHint) {
