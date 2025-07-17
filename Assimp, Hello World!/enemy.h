@@ -37,7 +37,7 @@ public:
 
     Enemy(Model& model, glm::vec3 startPos, glm::vec4 bounds)
         : enemyModel(model), position(startPos), spawnPosition(startPos), patrolBounds(bounds),
-        health(50.0f), orientation(0.0f), isAlive(true),
+        health(1000.0f), orientation(0.0f), isAlive(true),
         collisionRadius(0.6f), // <-- Inizializzazione del raggio di collisione
         currentState(State::IDLE), stateTimer(0.0f), didDealDamage(false)
     {
@@ -127,7 +127,7 @@ public:
     }
 
     void Reset(glm::vec3 startPos) {
-        health = 50.0f;
+        health = 1000.0f;
         isAlive = true;
         position = startPos;
         spawnPosition = startPos;
