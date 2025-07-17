@@ -276,10 +276,11 @@ public:
             shader.setMat4("finalBoneMatrices[" + std::to_string(i) + "]", transforms[i]);
         }
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, position);
+        glm::vec3 visualPosition = position + glm::vec3(0.0f, 1.2f, 0.0f);
+        model = glm::translate(model, visualPosition);
         model = glm::rotate(model, glm::radians(orientation), glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.02f));
+        model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 1.0f));
+        model = glm::scale(model, glm::vec3(1.3f));
         shader.setMat4("model", model);
         minotaurModel.Draw(shader);
     }

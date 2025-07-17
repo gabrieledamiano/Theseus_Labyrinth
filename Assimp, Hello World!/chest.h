@@ -69,7 +69,7 @@ public:
 
     void Draw(Shader& shader) {
         // MODIFICA: Non disegnare se la cassa è stata raccolta
-        if (isCollected) return;
+        if (isCollected || isOpen) return;
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, position);

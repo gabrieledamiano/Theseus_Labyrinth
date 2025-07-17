@@ -5,7 +5,7 @@
 #include <list>
 #include <string>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp> // <-- AGGIUNTO QUI
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <assimp/scene.h>
 #include "assimp_glm_helpers.h"
@@ -16,7 +16,6 @@ struct BoneInfo
 	glm::mat4 offset;
 };
 
-// ... (il resto del file rimane identico)
 struct KeyPosition
 {
 	glm::vec3 position;

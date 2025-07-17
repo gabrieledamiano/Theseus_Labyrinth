@@ -140,7 +140,7 @@ float playerHealth = 100.0f;
 
 const float PLAYER_MAX_HEALTH = 100.0f;
 
-float playerAttackDamage = 100.0f;
+float playerAttackDamage = 50.0f;
 
 
 
@@ -184,7 +184,7 @@ const float STAMINA_REGEN_RATE = 15.0f; // Punti al secondo
 
 const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
 
     { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1 },
 
@@ -262,7 +262,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
 
-    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } // USCITA DEFINITA QUI
+    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } // Uscita = 3
 
 };
 
@@ -478,7 +478,7 @@ int main() {
 
     Sword sword("resources/sword/sword.obj");
 
-    Model minotaurModel("resources/minotaur/minotaur.glb");
+    Model minotaurModel("resources/minotaur/minotauro.glb");
 
     minotaurModel.LoadAnimation("idle", "resources/minotaur/idle.glb");
 
@@ -1482,7 +1482,7 @@ void ResetGame(Camera& cam, Minotaur& minotaur) {
 
     playerStamina = PLAYER_MAX_STAMINA;
 
-    playerAttackDamage = 25.0f; // Resetta il danno
+    playerAttackDamage = 50.0f; 
 
 
 
@@ -1769,7 +1769,7 @@ void processInput(GLFWwindow* window) {
 
             for (auto& room : rooms) {
 
-                if (!room.chest.isCollected && glm::distance(camera.Position, room.chest.position) < 2.5f) {
+                if (!room.chest.isCollected && !room.chest.isOpen && glm::distance(camera.Position, room.chest.position) < 2.5f) {
 
 
 
@@ -1796,7 +1796,7 @@ void processInput(GLFWwindow* window) {
                         }
 
                         powerUpMessageTimer.Start();
-
+                        break;
                     }
 
                     break;
