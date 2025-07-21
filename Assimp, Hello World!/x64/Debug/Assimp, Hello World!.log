@@ -3,42 +3,55 @@
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\include\glm\gtx\norm.hpp(21,1): error C1189: #error:  "GLM: GLM_GTX_norm is an experimental extension and may change in the future. Use #define GLM_ENABLE_EXPERIMENTAL before including it, if you really want to use it."
   (compilazione del file di origine 'animation.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\shader_m.h(49,40): warning C4101: 'e': variabile locale senza riferimenti
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(60,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(59,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(71,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(70,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(82,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(81,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\animation.h(30,37): warning C4244: 'return': conversione da 'int' a 'float'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\model.h(170,43): warning C4018: '<': errata corrispondenza tra signed e unsigned
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:             _Ty=int
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:         ]
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(114,8): error C2011: 'Cell': ridefinizione tipo 'struct'
-      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
-      vedere la dichiarazione di 'Cell'
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:             _Ty=int
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:         ]
+  (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(339,34): error C2027: utilizzo di tipo non definito 'Cell'
-      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
-      vedere la dichiarazione di 'Cell'
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:             T=float
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:         ]
+  (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(539,22): error C2027: utilizzo di tipo non definito 'Cell'
-      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
-      vedere la dichiarazione di 'Cell'
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:             T=float
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:         ]
+  (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(540,22): error C2027: utilizzo di tipo non definito 'Cell'
-      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
-      vedere la dichiarazione di 'Cell'
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(366,19): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(551,83): error C2027: utilizzo di tipo non definito 'Cell'
-      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(14,8):
-      vedere la dichiarazione di 'Cell'
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(367,20): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
   
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(803,61): warning C4267: 'argomento': conversione da 'size_t' a 'GLsizei'. Possibile perdita di dati.
   Generazione del codice in corso...
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\render_text.h(131,1): warning C4715: 'initRenderText': non tutti i percorsi di controllo restituiscono un valore

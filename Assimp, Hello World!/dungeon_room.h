@@ -39,7 +39,12 @@ public:
             playerX > bounds.x && playerX < bounds.y &&
             playerZ > bounds.z && playerZ < bounds.w) {
             state = RoomState::ACTIVE;
-            std::cout << "Sei entrato in un'area sorvegliata!" << std::endl;
+            firstActivation = false;
+            std::cout << "Una trappola! I guardiani si risvegliano!" << std::endl;
+
+            for (auto& enemy : enemies) {
+                enemy.Activate();
+            }
         }
 
         if (state == RoomState::ACTIVE) {

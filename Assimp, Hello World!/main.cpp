@@ -132,6 +132,8 @@ ISoundSource* minotaurHitSound = SoundEngine->addSoundSourceFromFile("resources/
 
 ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resources/death.mp3");
 
+ISoundSource* playerHurtSound = SoundEngine->addSoundSourceFromFile("resources/hurt.mp3");
+
 
 
 // --- Variabili Globali di Gioco ---
@@ -149,6 +151,9 @@ float playerAttackDamage = 50.0f;
 // --- NUOVO TIMER PER MESSAGGIO VITTORIA ---
 
 Timer victoryMessageTimer(5.0f); // Il messaggio dura 5 secondi
+
+Timer damageEffectTimer(0.5f); // L'effetto dura mezzo secondo
+unsigned int damageOverlayTexture;
 
 
 
@@ -334,11 +339,11 @@ bool showHint = false;
 
 float hintTimer = 0.0f;
 
-const float HINT_DURATION = 10.0f;
+const float HINT_DURATION = 5.0f;
 
 bool ariadneThreadUnlocked = false;  // True dopo aver sconfitto il Minotauro
 
-Timer unlockMessageTimer(5.0f);      // Timer per il messaggio di sblocco
+Timer unlockMessageTimer(7.0f);      // Timer per il messaggio di sblocco
 
 
 
@@ -569,6 +574,8 @@ int main() {
     menuTexture = loadtexture("resources/textures/menu.jpg");
 
     endMenuTexture = loadtexture("resources/textures/endmenu.jpg");
+    // AGGIUNGI QUESTA RIGA
+    damageOverlayTexture = loadtexture("resources/textures/damage_overlay.png", true);
 
 
 
@@ -725,6 +732,7 @@ int main() {
                 powerUpMessageTimer.Update(deltaTime);
 
                 unlockMessageTimer.Update(deltaTime);
+                damageEffectTimer.Update(deltaTime); // <-- AGGIORNAMENTO NUOVO TIMER
 
             }
 
@@ -966,6 +974,25 @@ int main() {
             if (unlockMessageTimer.IsActive()) {
                 RenderText("HAI SBLOCCATO IL FILO CHE CONDUCE ALLA LIBERTA'. PREMI H PER UTILIZZARLO",
                     SCR_WIDTH / 2.0f - 220.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.84, 0.0)); // Colore oro
+            }
+
+
+            // --- NUOVO: RENDER EFFETTO DANNO ---
+        // Lo disegniamo dopo la scena 3D ma prima dell'HUD
+            if (damageEffectTimer.IsActive()) {
+                glDisable(GL_DEPTH_TEST); // Disabilita il test di profondità per disegnarlo sopra a tutto
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                menuShader.use(); // Riutilizziamo lo shader del menu che disegna una texture a schermo intero
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, damageOverlayTexture);
+
+                glBindVertexArray(menuVAO); // Riutilizziamo il VAO del menu che è un quad a schermo intero
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+
+                glEnable(GL_DEPTH_TEST); // Riabilita il test di profondità
             }
 
 
@@ -1360,6 +1387,10 @@ void PlayerTakeDamage(float damage) {
         playerHealth -= damage;
 
         if (playerHealth < 0) playerHealth = 0;
+
+        // --- ATTIVA L'EFFETTO VISIVO E SONORO ---
+        damageEffectTimer.Start();
+        if (playerHurtSound) SoundEngine->play2D(playerHurtSound, false);
 
         std::cout << "Player health: " << playerHealth << std::endl;
 
@@ -1769,7 +1800,7 @@ void processInput(GLFWwindow* window) {
 
             for (auto& room : rooms) {
 
-                if (!room.chest.isCollected && !room.chest.isOpen && glm::distance(camera.Position, room.chest.position) < 2.5f) {
+                if (!room.chest.isCollected && glm::distance(camera.Position, room.chest.position) < 2.5f) {
 
 
 

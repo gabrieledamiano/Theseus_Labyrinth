@@ -1,3 +1,4 @@
+#pragma once
 #ifndef ENEMY_H
 #define ENEMY_H
 
@@ -12,7 +13,8 @@ void PlayerTakeDamage(float damage);
 
 class Enemy {
 public:
-    enum class State { IDLE, CHASING, ATTACKING, DEATH };
+    // Aggiunto il nuovo stato DORMANT
+    enum class State { DORMANT, IDLE, CHASING, ATTACKING, DEATH };
 
     Model& enemyModel;
     glm::vec3 position;
@@ -20,12 +22,8 @@ public:
     float health;
     float orientation;
     bool isAlive;
-
-    // --- VARIABILE AGGIUNTA ---
     float collisionRadius;
-
     State currentState;
-
     glm::vec4 patrolBounds;
     glm::vec3 targetPatrolPoint;
     float stateTimer;
@@ -37,16 +35,22 @@ public:
 
     Enemy(Model& model, glm::vec3 startPos, glm::vec4 bounds)
         : enemyModel(model), position(startPos), spawnPosition(startPos), patrolBounds(bounds),
-        health(1000.0f), orientation(0.0f), isAlive(true),
-        collisionRadius(0.6f), // <-- Inizializzazione del raggio di collisione
-        currentState(State::IDLE), stateTimer(0.0f), didDealDamage(false)
+        health(3000.0f), orientation(0.0f), isAlive(true), collisionRadius(0.6f),
+        currentState(State::DORMANT), // I nemici ora partono in stato dormiente
+        stateTimer(0.0f), didDealDamage(false)
     {
         position.y = 0.2f;
         GetNewPatrolPoint();
     }
 
+    void Activate() {
+        if (currentState == State::DORMANT) {
+            currentState = State::IDLE;
+        }
+    }
+
     void TakeDamage(float damage) {
-        if (!isAlive) return;
+        if (!isAlive || currentState == State::DORMANT) return;
         health -= damage;
         if (health <= 0) {
             health = 0;
@@ -56,14 +60,12 @@ public:
     }
 
     void Update(float deltaTime, glm::vec3 playerPosition) {
-        if (!isAlive) {
-            currentState = State::DEATH;
-            return;
+        if (currentState == State::DORMANT || !isAlive) {
+            return; // Se è dormiente o morto, non fare nulla
         }
 
         float distanceToPlayer = glm::distance(position, playerPosition);
 
-        // Se sta attaccando, completa l'attacco
         if (currentState == State::ATTACKING) {
             stateTimer += deltaTime;
             orientation = glm::degrees(atan2(playerPosition.x - position.x, playerPosition.z - position.z));
@@ -78,7 +80,6 @@ public:
             return;
         }
 
-        // Altrimenti, decide cosa fare
         if (distanceToPlayer < ATTACK_RANGE) {
             currentState = State::ATTACKING;
             stateTimer = 0.0f;
@@ -103,35 +104,34 @@ public:
             orientation = glm::degrees(atan2(direction.x, direction.z));
         }
         else if (currentState == State::IDLE) {
-            // Logica di pattugliamento quando è in idle
             if (glm::distance(position, targetPatrolPoint) < 1.0f) {
                 GetNewPatrolPoint();
             }
             glm::vec3 direction = glm::normalize(targetPatrolPoint - position);
-            position += direction * 1.0f * deltaTime; // Si muove più lentamente
+            position += direction * 1.0f * deltaTime;
             orientation = glm::degrees(atan2(direction.x, direction.z));
         }
     }
 
     void Draw(Shader& shader) {
-        if (!isAlive) return;
+        if (currentState == State::DORMANT || !isAlive) return; // Se è dormiente o morto, non viene disegnato
 
         shader.use();
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, position);
         model = glm::rotate(model, glm::radians(orientation), glm::vec3(0.0f, 1.0f, 0.0f));
         model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.20f)); 
+        model = glm::scale(model, glm::vec3(0.20f));
         shader.setMat4("model", model);
         enemyModel.Draw(shader);
     }
 
     void Reset(glm::vec3 startPos) {
-        health = 1000.0f;
+        health = 3000.0f;
         isAlive = true;
         position = startPos;
         spawnPosition = startPos;
-        currentState = State::IDLE;
+        currentState = State::DORMANT; // Al reset, torna dormiente
         GetNewPatrolPoint();
     }
 

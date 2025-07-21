@@ -43,7 +43,7 @@ public:
         }
 
         // MODIFICA: Controlla anche isCollected
-        if (isOpen || isCollected) {
+        if (isCollected) {
             return false;
         }
 
