@@ -1,2 +1,90 @@
-﻿  Assimp, Hello World!.vcxproj -> D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\x64\Release\Assimp, Hello World!.exe
+﻿  main.cpp
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(13,9): warning C4005: 'GLM_ENABLE_EXPERIMENTAL': ridefinizione macro
+      D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(13,9):
+      'GLM_ENABLE_EXPERIMENTAL' dichiarato in precedenza sulla riga di comando
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(59,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(70,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\bone.h(81,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\animation.h(30,37): warning C4244: 'return': conversione da 'int' a 'float'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:             _Ty=int
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:         ]
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:             _Ty=int
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:         ]
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:             T=float
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:         ]
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:             T=float
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:         ]
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(312,19): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(313,20): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(352,39): warning C4244: 'inizializzazione': conversione da 'float' a 'int'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(749,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(924,61): warning C4267: 'argomento': conversione da 'size_t' a 'GLsizei'. Possibile perdita di dati.
+LINK : warning LNK4098: la libreria predefinita 'LIBCMT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
+  Generazione codice in corso...
+  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\render_text.h(131): warning C4715: 'initRenderText': non tutti i percorsi di controllo restituiscono un valore
+  All 2639 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Generazione codice terminata
+freetype.lib(ftbase.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftbase.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(ftinit.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftinit.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(ftsystem.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftsystem.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(autofit.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(autofit.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(truetype.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(truetype.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(type1.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(type1.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(cff.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(cff.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(type1cid.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(type1cid.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(pfr.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(pfr.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(type42.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(type42.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(winfnt.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(winfnt.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(pcf.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(pcf.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(psaux.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(psaux.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(psmodule.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(psmodule.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(pshinter.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(pshinter.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(raster.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(raster.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(sfnt.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(sfnt.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(smooth.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(smooth.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(bdf.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(bdf.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(ftgzip.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftgzip.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(ftlzw.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftlzw.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(ftbitmap.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftbitmap.obj)' o in ''; oggetto collegato senza informazioni di debug
+freetype.lib(ftdebug.obj) : warning LNK4099: impossibile trovare il PDB '' con 'freetype.lib(ftdebug.obj)' o in ''; oggetto collegato senza informazioni di debug
+  Assimp, Hello World!.vcxproj -> D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\x64\Release\Assimp, Hello World!.exe
           1 file copiati.

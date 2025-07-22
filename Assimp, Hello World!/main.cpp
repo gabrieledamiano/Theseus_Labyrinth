@@ -17,7 +17,7 @@
 
 
 #include <iostream>
-
+    
 #include <vector>
 
 #include <stack>
@@ -47,7 +47,7 @@
 #include "config.h"
 
 #include "wallSconce.h" 
-#include "ParticleEmitter.h" // sistema particellare
+#include "ParticleEmitter.h"
 
 
 
@@ -85,8 +85,6 @@ using namespace irrklang;
 
 
 
-// Struct per passare dati alle callback
-
 struct GameContext {
 
     Sword* sword;
@@ -95,9 +93,7 @@ struct GameContext {
 
     Camera* camera;
 
-    //std::vector<Chest>* chests; // <-- NUOVO PUNTATORE
-
-    std::vector<DungeonRoom>* dungeonRooms; //nuovo
+    std::vector<DungeonRoom>* dungeonRooms; 
 
 };
 
