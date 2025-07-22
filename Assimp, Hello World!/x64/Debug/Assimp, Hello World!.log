@@ -1,8 +1,8 @@
 ﻿  animation.cpp
-  main.cpp
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\include\glm\gtx\norm.hpp(21,1): error C1189: #error:  "GLM: GLM_GTX_norm is an experimental extension and may change in the future. Use #define GLM_ENABLE_EXPERIMENTAL before including it, if you really want to use it."
   (compilazione del file di origine 'animation.cpp')
   
+  main.cpp
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
   (compilazione del file di origine 'main.cpp')
   
@@ -18,40 +18,49 @@ D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\animation.h(30,37): warning C4244: 'return': conversione da 'int' a 'float'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:         with
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:         [
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:             _Ty=int
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(293,74): warning C4267:         ]
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:             _Ty=int
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(277,74): warning C4267:         ]
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:         with
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:         [
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:             _Ty=int
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(294,71): warning C4267:         ]
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:             _Ty=int
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(278,71): warning C4267:         ]
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:         with
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:         [
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:             T=float
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(298,37): warning C4244:         ]
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:             T=float
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(281,37): warning C4244:         ]
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:         with
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:         [
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:             T=float
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(299,37): warning C4244:         ]
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244: '=': conversione da 'int' a 'T'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:         with
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:         [
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:             T=float
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(282,37): warning C4244:         ]
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(366,19): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(312,19): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(367,20): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(313,20): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(803,61): warning C4267: 'argomento': conversione da 'size_t' a 'GLsizei'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(352,39): warning C4244: 'inizializzazione': conversione da 'float' a 'int'. Possibile perdita di dati.
+  (compilazione del file di origine 'main.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(749,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(924,61): warning C4267: 'argomento': conversione da 'size_t' a 'GLsizei'. Possibile perdita di dati.
+  particleEmitter.cpp
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
+  (compilazione del file di origine 'particleEmitter.cpp')
+  
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\particleEmitter.cpp(72,46): warning C4267: 'argomento': conversione da 'size_t' a 'GLsizei'. Possibile perdita di dati.
   Generazione del codice in corso...
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\render_text.h(131,1): warning C4715: 'initRenderText': non tutti i percorsi di controllo restituiscono un valore

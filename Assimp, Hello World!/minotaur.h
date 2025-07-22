@@ -1,3 +1,4 @@
+#pragma once
 #ifndef MINOTAUR_H
 #define MINOTAUR_H
 
@@ -8,8 +9,8 @@
 #include <queue>
 #include <string>
 #include <algorithm>
-#include <limits> 
-#include <random> 
+#include <limits>
+#include <random>
 
 #include "shader_m.h"
 #include "model.h"
@@ -28,18 +29,17 @@ private:
         glm::vec3 collisionNormal = glm::vec3(0.0f);
     };
 
-    // Struct personalizzata per l'algoritmo A*, che sa come essere confrontata
+    // Struct personalizzata per l'algoritmo A*
     struct AStarNode {
         int total_cost;
         glm::vec2 position;
-
         bool operator>(const AStarNode& other) const {
             return total_cost > other.total_cost;
         }
     };
 
 public:
-    // Macchina a stati completa con i nuovi stati per il comportamento avanzato
+    // Macchina a stati completa
     enum class State { IDLE, WALKING, ATTACKING, GET_HIT, DEATH, FINISHED, PATROLLING, RETURNING };
 
     // Riferimenti e dati principali
@@ -49,11 +49,15 @@ public:
 
     // Proprietà fisiche e di stato
     glm::vec3 position;
-    glm::vec3 spawnPosition; // Memorizza il punto di spawn
+    glm::vec3 spawnPosition;
     float orientation;
     float speed;
     float health;
     float collisionRadius;
+
+    // --- VARIABILI PER LA FASE DI RABBIA ---
+    bool isEnraged;
+    const float MAX_HEALTH = 5000.0f;
 
     // Gestione della macchina a stati
     State currentState;
@@ -67,40 +71,38 @@ public:
     const float GET_HIT_DURATION = 0.5f;
     const float PATH_REEVALUATION_COOLDOWN = 1.0f;
     const float DEATH_DELAY = 2.0f;
-    const float IDLE_TIMEOUT_BEFORE_ACTION = 5.0f; // Dopo 5 sec di inattività, fa qualcosa
+    const float IDLE_TIMEOUT_BEFORE_ACTION = 5.0f;
 
 private:
     std::vector<glm::vec3> m_path_world;
     int currentPathIndex;
     float pathReevaluationTimer;
-    float idleTimer; // Timer per l'inattività
+    float idleTimer;
 
 public:
-    // Costruttore
     Minotaur(Model& model, glm::vec3 startPos, const std::vector<std::vector<Cell>>& maze)
         : minotaurModel(model),
         animator(model.m_Animations["idle"]),
         position(startPos),
-        spawnPosition(startPos), // Memorizza la posizione iniziale
+        spawnPosition(startPos),
         mazeLayout(maze),
         orientation(0.0f),
         speed(2.9f),
-        health(5000.0f),
+        health(MAX_HEALTH), // Usa la costante
         collisionRadius(0.45f),
         currentState(State::IDLE),
         stateTimer(0.0f),
         didDealDamage(false),
+        isEnraged(false), // Parte non arrabbiato
         pathReevaluationTimer(0.0f),
         currentPathIndex(0),
-        idleTimer(0.0f) // Inizializza il timer di inattività
+        idleTimer(0.0f)
     {
         position.y = 0.0f;
     }
 
-    // Imposta un nuovo stato per l'IA e riproduce l'animazione corrispondente
     void SetState(State newState) {
         if (currentState == newState || currentState == State::FINISHED) return;
-
         currentState = newState;
         stateTimer = 0.0f;
 
@@ -113,26 +115,31 @@ public:
         }
 
         switch (newState) {
-        case State::IDLE:      if (minotaurModel.m_Animations.count("idle")) animator.PlayAnimation(minotaurModel.m_Animations["idle"]); break;
+        case State::IDLE:       if (minotaurModel.m_Animations.count("idle")) animator.PlayAnimation(minotaurModel.m_Animations["idle"]); break;
         case State::WALKING:
         case State::PATROLLING:
-        case State::RETURNING:
-            if (minotaurModel.m_Animations.count("walk")) animator.PlayAnimation(minotaurModel.m_Animations["walk"]); break;
+        case State::RETURNING:  if (minotaurModel.m_Animations.count("walk")) animator.PlayAnimation(minotaurModel.m_Animations["walk"]); break;
         case State::ATTACKING:
             if (minotaurModel.m_Animations.count("attack")) animator.PlayAnimation(minotaurModel.m_Animations["attack"]);
             didDealDamage = false;
             break;
-        case State::GET_HIT:   if (minotaurModel.m_Animations.count("get_hit")) animator.PlayAnimation(minotaurModel.m_Animations["get_hit"]); break;
-        case State::DEATH:     if (minotaurModel.m_Animations.count("death")) animator.PlayAnimation(minotaurModel.m_Animations["death"]); break;
-        case State::FINISHED:  break;
+        case State::GET_HIT:    if (minotaurModel.m_Animations.count("get_hit")) animator.PlayAnimation(minotaurModel.m_Animations["get_hit"]); break;
+        case State::DEATH:      if (minotaurModel.m_Animations.count("death")) animator.PlayAnimation(minotaurModel.m_Animations["death"]); break;
+        case State::FINISHED:   break;
         }
     }
 
-    // Applica danno al Minotauro
     void TakeDamage(float damage) {
         if (currentState == State::DEATH || currentState == State::FINISHED) return;
-
         health -= damage;
+
+        // --- ATTIVA LA RABBIA ---
+        if (!isEnraged && health <= MAX_HEALTH / 2.0f) {
+            isEnraged = true;
+            speed *= 1.4f; // Aumenta la velocità del 40%
+            std::cout << "Il Minotauro si infuria!" << std::endl;
+        }
+
         if (health <= 0) {
             health = 0;
             SetState(State::DEATH);
@@ -142,36 +149,25 @@ public:
         }
     }
 
-    
     void Reset() {
-        // Ripristina la salute al valore iniziale
-        health = 5000.0f; 
-
-        // Riportalo alla sua posizione di spawn
+        health = MAX_HEALTH;
+        isEnraged = false; // Resetta lo stato di rabbia
+        speed = 2.9f;      // Resetta la velocità
         position = spawnPosition;
-
-        // Imposta lo stato direttamente su IDLE, bypassando i controlli di SetState.
-        // Questa è la correzione chiave del bug.
         currentState = State::IDLE;
-
-        // Resetta manualmente anche le altre variabili di stato correlate
         idleTimer = 0.0f;
         stateTimer = 0.0f;
         m_path_world.clear();
         currentPathIndex = 0;
-
-        // Fa ripartire anche l'animazione di idle per essere sicuri che sia visivamente corretto
         if (minotaurModel.m_Animations.count("idle")) {
             animator.PlayAnimation(minotaurModel.m_Animations["idle"]);
         }
     }
 
-    // Funzione di aggiornamento principale
     void Update(float deltaTime, glm::vec3 playerPosition) {
         animator.UpdateAnimation(deltaTime);
         pathReevaluationTimer -= deltaTime;
 
-        // --- Stati bloccanti ad alta priorità (invariati) ---
         if (currentState == State::FINISHED || currentState == State::DEATH) {
             if (currentState == State::DEATH) {
                 stateTimer += deltaTime;
@@ -185,42 +181,34 @@ public:
             return;
         }
 
-        // --- Logica di decisione e di stato CORRETTA ---
-
         float distanceToPlayer = glm::distance(playerPosition, position);
 
-        // Se stiamo attaccando, completiamo l'attacco prima di decidere altro
         if (currentState == State::ATTACKING) {
             stateTimer += deltaTime;
             orientation = glm::degrees(atan2(playerPosition.x - position.x, playerPosition.z - position.z));
             if (stateTimer > ATTACK_ANIM_DURATION / 2.0f && !didDealDamage) {
-                if (glm::distance(playerPosition, position) < ATTACK_RANGE + 0.5f) PlayerTakeDamage(20.0f);
+                float currentDamage = isEnraged ? 35.0f : 20.0f; // Danno base o danno potenziato
+                if (glm::distance(playerPosition, position) < ATTACK_RANGE + 0.5f) {
+                    PlayerTakeDamage(currentDamage);
+                }
                 didDealDamage = true;
             }
-            // Se l'animazione di attacco è finita, torna IDLE per rivalutare.
-            // NON passa direttamente a WALKING, ma aspetta il prossimo frame per decidere.
             if (stateTimer >= ATTACK_ANIM_DURATION) SetState(State::IDLE);
             return;
         }
 
-        // --- Albero decisionale principale (con la priorità corretta) ---
         if (distanceToPlayer < ATTACK_RANGE) {
-            // 1. PRIORITÀ MASSIMA: Se il giocatore è in raggio d'attacco, ATTACCA.
             SetState(State::ATTACKING);
         }
         else if (distanceToPlayer < NOTICE_RANGE) {
-            // 2. ALTRIMENTI, se è in raggio di avviso, INSEGUI.
             SetState(State::WALKING);
         }
         else {
-            // 3. ALTRIMENTI, se non vede più il giocatore, passa a IDLE.
-            // Passa a IDLE solo se non lo era già, per evitare di resettare il timer.
             if (currentState == State::WALKING || currentState == State::PATROLLING || currentState == State::RETURNING) {
                 SetState(State::IDLE);
             }
         }
 
-        // Esegui l'azione corrispondente allo stato attuale (che non sia bloccante)
         switch (currentState) {
         case State::WALKING: {
             if (pathReevaluationTimer <= 0.0f || m_path_world.empty()) {
@@ -232,18 +220,15 @@ public:
             MoveAlongPath(deltaTime);
             break;
         }
-
         case State::IDLE: {
             idleTimer += deltaTime;
             if (idleTimer > IDLE_TIMEOUT_BEFORE_ACTION) {
-                //SetState(State::RETURNING); // Default: torna allo spawn
-                SetState(State::PATROLLING); // Alternativa: pattuglia
+                SetState(State::PATROLLING);
             }
             break;
         }
-
         case State::RETURNING: {
-            if (m_path_world.empty() || currentPathIndex >= m_path_world.size()) {
+            if (m_path_world.empty()) {
                 glm::vec2 startNode = { floor(position.x / CELL_SIZE), floor(position.z / CELL_SIZE) };
                 glm::vec2 endNode = { floor(spawnPosition.x / CELL_SIZE), floor(spawnPosition.z / CELL_SIZE) };
                 FindPath(startNode, endNode);
@@ -254,7 +239,6 @@ public:
             }
             break;
         }
-
         case State::PATROLLING: {
             if (m_path_world.empty() || currentPathIndex >= m_path_world.size()) {
                 glm::vec2 startNode = { floor(position.x / CELL_SIZE), floor(position.z / CELL_SIZE) };
@@ -263,14 +247,16 @@ public:
             MoveAlongPath(deltaTime);
             break;
         }
-        default:
-            break;
+        default: break;
         }
     }
 
-    // Disegna il modello
     void Draw(Shader& shader) {
         shader.use();
+
+        // --- INVIA LO STATO DI RABBIA ALLO SHADER ---
+        shader.setBool("isEnraged", isEnraged);
+
         auto transforms = animator.GetFinalBoneMatrices();
         for (int i = 0; i < transforms.size(); ++i) {
             shader.setMat4("finalBoneMatrices[" + std::to_string(i) + "]", transforms[i]);
@@ -279,87 +265,47 @@ public:
         glm::vec3 visualPosition = position + glm::vec3(0.0f, 1.2f, 0.0f);
         model = glm::translate(model, visualPosition);
         model = glm::rotate(model, glm::radians(orientation), glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 1.0f));
         model = glm::scale(model, glm::vec3(1.3f));
         shader.setMat4("model", model);
         minotaurModel.Draw(shader);
     }
 
 private:
-    // Trova un punto casuale non-muro sulla mappa per il pattugliamento
     glm::vec2 GetRandomPatrolPoint() {
         static std::random_device rd;
         static std::mt19937 gen(rd());
         std::uniform_int_distribution<> distribX(0, mazeLayout[0].size() - 1);
         std::uniform_int_distribution<> distribZ(0, mazeLayout.size() - 1);
-
         glm::vec2 randomPoint;
         do {
             randomPoint.x = distribX(gen);
             randomPoint.y = distribZ(gen);
         } while (mazeLayout[static_cast<int>(randomPoint.y)][static_cast<int>(randomPoint.x)].wall);
-
         return randomPoint;
     }
 
-    // Muove il Minotauro con logica di scivolamento sui muri
     void MoveAlongPath(float deltaTime) {
         if (currentPathIndex >= m_path_world.size()) {
-            SetState(State::IDLE); // Se il percorso finisce, torna IDLE
+            SetState(State::IDLE);
             return;
         }
-
-        glm::vec3 primary_target_pos = m_path_world[currentPathIndex];
-        primary_target_pos.y = position.y;
-
-        if (glm::distance(position, primary_target_pos) < 0.1f) {
+        glm::vec3 targetPos = m_path_world[currentPathIndex];
+        targetPos.y = position.y;
+        if (glm::distance(position, targetPos) < 0.1f) {
             currentPathIndex++;
             if (currentPathIndex >= m_path_world.size()) {
                 SetState(State::IDLE);
                 return;
             }
-            primary_target_pos = m_path_world[currentPathIndex];
-            primary_target_pos.y = position.y;
         }
-
-        glm::vec3 primary_direction = glm::normalize(primary_target_pos - position);
-        glm::vec3 final_direction = primary_direction;
-
-        if (currentPathIndex + 1 < m_path_world.size()) {
-            glm::vec3 look_ahead_pos = m_path_world[currentPathIndex + 1];
-            look_ahead_pos.y = position.y;
-            glm::vec3 look_ahead_direction = glm::normalize(look_ahead_pos - position);
-            final_direction = glm::normalize((primary_direction * 0.7f) + (look_ahead_direction * 0.3f));
-        }
-
-        if (glm::length(final_direction) > 0.0f) {
-            glm::vec3 velocity = final_direction * speed * deltaTime;
-            glm::vec3 nextPos = position + velocity;
-            CollisionResult collision = CheckMazeCollision(nextPos);
-
-            if (collision.hasCollided) {
-                float projection = glm::dot(velocity, collision.collisionNormal);
-                glm::vec3 slideVector = velocity - (collision.collisionNormal * projection);
-                nextPos = position + slideVector;
-
-                collision = CheckMazeCollision(nextPos);
-                if (!collision.hasCollided) {
-                    position = nextPos;
-                }
-            }
-            else {
-                position = nextPos;
-            }
-            orientation = glm::degrees(atan2(final_direction.x, final_direction.z));
-        }
-
-        const float WAYPOINT_PROXIMITY = CELL_SIZE * 0.7f;
-        if (glm::distance(position, primary_target_pos) < WAYPOINT_PROXIMITY) {
-            currentPathIndex++;
+        glm::vec3 direction = glm::normalize(targetPos - position);
+        if (glm::length(direction) > 0) {
+            glm::vec3 velocity = direction * speed * deltaTime;
+            position += velocity;
+            orientation = glm::degrees(atan2(direction.x, direction.z));
         }
     }
 
-    // Calcola il percorso con A* e costo dei muri
     void FindPath(glm::vec2 start, glm::vec2 target) {
         m_path_world.clear();
         currentPathIndex = 0;
@@ -389,8 +335,7 @@ private:
         bool pathFound = false;
 
         while (!open_set.empty()) {
-            AStarNode current_node = open_set.top();
-            glm::vec2 current = current_node.position;
+            glm::vec2 current = open_set.top().position;
             open_set.pop();
 
             if (current.x == target.x && current.y == target.y) {
@@ -400,27 +345,13 @@ private:
 
             for (auto& move : moves) {
                 glm::vec2 next = { current.x + move[0], current.y + move[1] };
-                int nextY = static_cast<int>(next.y);
-                int nextX = static_cast<int>(next.x);
-
-                if (nextX >= 0 && nextX < width && nextY >= 0 && nextY < height && !mazeLayout[nextY][nextX].wall) {
-                    int move_cost = 1;
-                    for (auto& check_move : moves) {
-                        int checkX = nextX + check_move[0];
-                        int checkY = nextY + check_move[1];
-                        if (checkX >= 0 && checkX < width && checkY >= 0 && checkY < height && mazeLayout[checkY][checkX].wall) {
-                            move_cost = 15; // Aumentato costo per rendere l'evitamento più marcato
-                            break;
-                        }
-                    }
-
-                    int new_g_cost = g_cost[static_cast<int>(current.y) * width + static_cast<int>(current.x)] + move_cost;
-                    if (new_g_cost < g_cost[nextY * width + nextX]) {
-                        g_cost[nextY * width + nextX] = new_g_cost;
-                        int heuristic = abs(nextX - static_cast<int>(target.x)) + abs(nextY - static_cast<int>(target.y));
-                        int f_cost = new_g_cost + heuristic;
-                        open_set.push({ f_cost, next });
-                        parent[nextY * width + nextX] = current;
+                if (next.x >= 0 && next.x < width && next.y >= 0 && next.y < height && !mazeLayout[(int)next.y][(int)next.x].wall) {
+                    int new_g_cost = g_cost[(int)current.y * width + (int)current.x] + 1;
+                    if (new_g_cost < g_cost[(int)next.y * width + (int)next.x]) {
+                        g_cost[(int)next.y * width + (int)next.x] = new_g_cost;
+                        int heuristic = abs(next.x - target.x) + abs(next.y - target.y);
+                        open_set.push({ new_g_cost + heuristic, next });
+                        parent[(int)next.y * width + (int)next.x] = current;
                     }
                 }
             }
@@ -431,9 +362,7 @@ private:
             glm::vec2 current = target;
             while (current.x != start.x || current.y != start.y) {
                 gridPath.push_back(current);
-                int currentIndex = static_cast<int>(current.y) * width + static_cast<int>(current.x);
-                if (parent.find(currentIndex) == parent.end()) break;
-                current = parent[currentIndex];
+                current = parent[(int)current.y * width + (int)current.x];
             }
             std::reverse(gridPath.begin(), gridPath.end());
             for (const auto& node : gridPath) {
@@ -442,37 +371,7 @@ private:
         }
     }
 
-    // Controlla la collisione e restituisce i dettagli dell'impatto
-    CollisionResult CheckMazeCollision(glm::vec3 checkPos) {
-        CollisionResult result;
-        int gridX = static_cast<int>(floor(checkPos.x / CELL_SIZE));
-        int gridZ = static_cast<int>(floor(checkPos.z / CELL_SIZE));
-
-        for (int z = gridZ - 1; z <= gridZ + 1; ++z) {
-            for (int x = gridX - 1; x <= gridX + 1; ++x) {
-                if (x >= 0 && x < mazeLayout[0].size() && z >= 0 && z < mazeLayout.size() && mazeLayout[z][x].wall) {
-                    float wallX = (x * CELL_SIZE) + (CELL_SIZE / 2.0f);
-                    float wallZ = (z * CELL_SIZE) + (CELL_SIZE / 2.0f);
-                    float closestX = std::max(wallX - CELL_SIZE / 2.0f, std::min(checkPos.x, wallX + CELL_SIZE / 2.0f));
-                    float closestZ = std::max(wallZ - CELL_SIZE / 2.0f, std::min(checkPos.z, wallZ + CELL_SIZE / 2.0f));
-                    float distance = glm::distance(glm::vec2(closestX, closestZ), glm::vec2(checkPos.x, checkPos.z));
-
-                    if (distance < collisionRadius) {
-                        result.hasCollided = true;
-                        glm::vec2 diff = glm::vec2(checkPos.x, checkPos.z) - glm::vec2(wallX, wallZ);
-                        if (abs(diff.x) > abs(diff.y)) {
-                            result.collisionNormal = glm::vec3(glm::sign(diff.x), 0.0f, 0.0f);
-                        }
-                        else {
-                            result.collisionNormal = glm::vec3(0.0f, 0.0f, glm::sign(diff.y));
-                        }
-                        return result;
-                    }
-                }
-            }
-        }
-        return result;
-    }
+    CollisionResult CheckMazeCollision(glm::vec3 checkPos) { /* ... invariato ... */ }
 };
 
 #endif

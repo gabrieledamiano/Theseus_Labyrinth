@@ -156,6 +156,8 @@ float playerAttackDamage = 50.0f;
 Timer victoryMessageTimer(5.0f); // Il messaggio dura 5 secondi
 
 Timer damageEffectTimer(0.5f); // L'effetto dura mezzo secondo
+
+Timer cameraShakeTimer(0.3f); // <-- NUOVO TIMER
 unsigned int damageOverlayTexture;
 
 
@@ -753,6 +755,15 @@ int main() {
         // Calcola il colore diffuso aggiornato in base all'intensità
         glm::vec3 flickeringDiffuse = spotLightDiffuse * flickerIntensity;
 
+        // --- LOGICA CAMERA SHAKE ---
+        if (cameraShakeTimer.IsActive()) {
+            float shakeAmount = 0.08f * (cameraShakeTimer.GetTime() / 0.3f); // 0.3f è la durata
+            float offsetX = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
+            float offsetY = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
+            glm::mat4 shakeTransform = glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, offsetY, 0.0f) * shakeAmount);
+            view = shakeTransform * view; // Applica il tremore alla matrice di vista
+        }
+
 
 
         switch (currentState) {
@@ -833,6 +844,7 @@ int main() {
 
                 unlockMessageTimer.Update(deltaTime);
                 damageEffectTimer.Update(deltaTime); // <-- AGGIORNAMENTO NUOVO TIMER
+                cameraShakeTimer.Update(deltaTime); // <-- AGGIORNA IL NUOVO TIMER
 
             }
 
@@ -1523,6 +1535,7 @@ void PlayerTakeDamage(float damage) {
 
         // --- ATTIVA L'EFFETTO VISIVO E SONORO ---
         damageEffectTimer.Start();
+        cameraShakeTimer.Start(); // <-- ATTIVA IL TREMORE
         if (playerHurtSound) SoundEngine->play2D(playerHurtSound, false);
 
         std::cout << "Player health: " << playerHealth << std::endl;
