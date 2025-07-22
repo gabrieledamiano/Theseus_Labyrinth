@@ -13,7 +13,7 @@ const int MAZE_WIDTH = MAP_SIZE_COLS;
 const int MAZE_HEIGHT = MAP_SIZE_ROWS;
 
 // Proprietà fisiche del labirinto
-const float CELL_SIZE = 2.0f;
+const float CELL_SIZE = 1.8f;
 const float WALL_HEIGHT = 3.0f;
 
 // --- COSTANTI PER L'USCITA ---

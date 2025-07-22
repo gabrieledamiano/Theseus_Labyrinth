@@ -181,6 +181,8 @@
     <None Include="normal_mapping.fs" />
     <None Include="normal_mapping.vs" />
     <None Include="packages.config" />
+    <None Include="particle.fs" />
+    <None Include="particle.vs" />
     <None Include="spot_light.fs" />
     <None Include="spot_light.vs" />
     <None Include="text.fs" />
@@ -191,6 +193,7 @@
     <ClCompile Include="animation.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="particleEmitter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -206,10 +209,13 @@
     <ClInclude Include="mesh.h" />
     <ClInclude Include="minotaur.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="particle.h" />
+    <ClInclude Include="particleEmitter.h" />
     <ClInclude Include="render_text.h" />
     <ClInclude Include="shader_m.h" />
     <ClInclude Include="sword.h" />
     <ClInclude Include="timer.h" />
+    <ClInclude Include="wallSconce.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

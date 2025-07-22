@@ -46,6 +46,9 @@
 
 #include "config.h"
 
+#include "wallSconce.h" 
+#include "ParticleEmitter.h" // sistema particellare
+
 
 
 #pragma comment(lib, "irrKlang.lib")
@@ -174,6 +177,19 @@ Timer powerUpMessageTimer(4.0f);
 std::string lastPowerUpMessage = "";
 
 
+//Variabili per le fiaccole
+std::vector<WallSconce> wallSconces;
+Model* wallSconceModel_ptr = nullptr;
+
+//Variabili per il sistema particellare
+std::vector<ParticleEmitter> fireEmitters;
+
+//Variabili per illuminazione
+const int MAX_POINT_LIGHTS = 10;
+glm::vec3 pointLightPositions[MAX_POINT_LIGHTS];
+int activePointLights = 0;
+
+
 
 // --- STAMINA: Nuove variabili ---
 
@@ -186,12 +202,12 @@ const float SPRINT_DRAIN_RATE = 25.0f; // Punti al secondo
 const float STAMINA_REGEN_RATE = 15.0f; // Punti al secondo
 
 
-
+// Muro = 1, Minotauro = 2, Uscita = 3, Casse = 4
 const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
 
-    { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1 },
+    { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1 },
 
     { 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
 
@@ -201,7 +217,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
 
-    { 1, 2, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 4, 0, 0, 0, 1, 1 },
+    { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 4, 0, 0, 0, 1, 1 },
 
     { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
 
@@ -259,7 +275,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
 
-    { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 1 },
 
     { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
 
@@ -267,7 +283,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
 
-    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } // Uscita = 3
+    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } 
 
 };
 
@@ -507,6 +523,49 @@ int main() {
 
     enemyModel_ptr = new Model("resources/enemy/golem.glb");
 
+    //Modello della fiaccola
+    wallSconceModel_ptr = new Model("resources/torch/torch.glb");
+
+
+    // --- BLOCCO DA SOSTITUIRE ---
+    // Definisci una struttura per i dati della torcia, ora con l'offset
+    struct TorchData {
+        glm::vec3 position;
+        float     rotation;
+        float     scale;
+        glm::vec3 flameOffset; // Offset locale per la fiamma
+    };
+
+    // Crea la tua lista di torce, specificando l'offset per ciascuna
+    std::vector<TorchData> torchPositions = {
+        { glm::vec3(1.9f, 1.5f, 5.0f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(1.9f, 1.5f, 18.90f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(17.7564f, 1.5f, 25.22f), -90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(11.2421f, 1.5f, 28.73f), 90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(10.3171f, 1.5f, 17.787f), 90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(20.90f, 1.5f, 7.1f), 90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(19.90f, 1.5, 12.50f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(26.9f, 1.5f, 30.75f), 180.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(21.75f, 1.5f, 41.43f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(7.3f, 1.5f, 41.66f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(1.85f, 1.5f, 29.89f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(1.83f, 1.5, 54.14), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(19.85f, 1.5f, 60.41f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(9.05f, 1.5f, 64.53f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(25.25f, 1.5f, 67.54f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(25.25f, 1.5f, 53.23f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+    };
+
+    activePointLights = 0;
+
+    if (wallSconceModel_ptr) {
+        for (const auto& data : torchPositions) {
+            // Passa l'offset al costruttore della torcia
+            wallSconces.emplace_back(*wallSconceModel_ptr, data.position, data.rotation, data.scale, data.flameOffset);
+            fireEmitters.emplace_back(500); // Riduci il numero di particelle per performance
+        }
+    }
+
 
 
     glm::vec3 minotaurStartPosition;
@@ -520,42 +579,64 @@ int main() {
     Minotaur minotaur(minotaurModel, minotaurStartPosition, maze);
 
 
-
     float lightHeight = WALL_HEIGHT - 0.1f;
-
     //spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
+    //if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.03918f, lightHeight, 2.43882f);
+    if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.07f, 2.6f, 18.91f);
+    //if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(2.03109f, lightHeight, 23.1429f);
+    if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(1.9f, 2.6f, 5.0f);
+    if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(17.7564f, 2.6f, 25.4229f);
+    if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(11.2421f, 2.6f, 28.5234f);
+    if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(10.3171f, 2.6f, 17.787f);
+    if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(20.90f, 2.6f, 7.1f);
+    if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(19.90f, 2.6, 12.50f);
+    if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(26.7f, 2.6f, 30.75f);
+    if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(21.80f, 2.6f, 41.43f);
+    if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(7.3f, 2.6f, 41.66f);
+    if (NR_SPOT_LIGHTS > 12) spotLightPositions[12] = glm::vec3(1.85f, 2.6f, 29.89f);
+    if (NR_SPOT_LIGHTS > 13) spotLightPositions[13] = glm::vec3(1.83f, 2.6f, 54.14);
+    if (NR_SPOT_LIGHTS > 14) spotLightPositions[14] = glm::vec3(19.85f, 2.6f, 60.41f);
+    if (NR_SPOT_LIGHTS > 15) spotLightPositions[15] = glm::vec3(9.15f, 2.6f, 64.53f);
+    if (NR_SPOT_LIGHTS > 16) spotLightPositions[16] = glm::vec3(25.32f, 2.6f, 67.54f);
+    if (NR_SPOT_LIGHTS > 17) spotLightPositions[17] = glm::vec3(25.32f, 2.6f, 53.23f);
 
-    if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.03918f, lightHeight, 2.43882f);
 
-    if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(2.03109f, lightHeight, 23.1429f);
 
-    if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(12.167f, lightHeight, 14.8177f);
+    //float lightHeight = WALL_HEIGHT - 0.1f;
 
-    if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(17.7564f, lightHeight, 25.4229f);
+    ////spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
 
-    if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(11.2421f, lightHeight, 28.5234f);
+    //if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.03918f, lightHeight, 2.43882f);
 
-    if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(9.20282f, lightHeight, 3.86636f);
+    //if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(2.03109f, lightHeight, 23.1429f);
 
-    if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(28.7836f, lightHeight, 2.01158f);
+    //if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(12.167f, lightHeight, 14.8177f);
 
-    if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(25.5885f, lightHeight, 12.5597f);
+    //if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(17.7564f, lightHeight, 25.4229f);
 
-    if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(30.0438f, lightHeight, 41.6945f);
+    //if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(11.2421f, lightHeight, 28.5234f);
 
-    if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(4.65741f, lightHeight, 31.8666f);
+    //if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(9.20282f, lightHeight, 3.86636f);
 
-    if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(17.7664f, lightHeight, 42.9045f);
+    //if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(28.7836f, lightHeight, 2.01158f);
 
-    if (NR_SPOT_LIGHTS > 12) spotLightPositions[12] = glm::vec3(7.44922f, lightHeight, 39.807f);
+    //if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(25.5885f, lightHeight, 12.5597f);
 
-    if (NR_SPOT_LIGHTS > 13) spotLightPositions[13] = glm::vec3(2.04897f, lightHeight, 59.1026f);
+    //if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(30.0438f, lightHeight, 41.6945f);
 
-    if (NR_SPOT_LIGHTS > 14) spotLightPositions[14] = glm::vec3(23.1384f, lightHeight, 50.7383f);
+    //if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(4.65741f, lightHeight, 31.8666f);
 
-    if (NR_SPOT_LIGHTS > 15) spotLightPositions[15] = glm::vec3(9.20907f, lightHeight, 61.4568f);
+    //if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(17.7664f, lightHeight, 42.9045f);
 
-    if (NR_SPOT_LIGHTS > 16) spotLightPositions[16] = glm::vec3(30.5345f, lightHeight, 60.612f);
+    //if (NR_SPOT_LIGHTS > 12) spotLightPositions[12] = glm::vec3(7.44922f, lightHeight, 39.807f);
+
+    //if (NR_SPOT_LIGHTS > 13) spotLightPositions[13] = glm::vec3(2.04897f, lightHeight, 59.1026f);
+
+    //if (NR_SPOT_LIGHTS > 14) spotLightPositions[14] = glm::vec3(23.1384f, lightHeight, 50.7383f);
+
+    //if (NR_SPOT_LIGHTS > 15) spotLightPositions[15] = glm::vec3(9.20907f, lightHeight, 61.4568f);
+
+    //if (NR_SPOT_LIGHTS > 16) spotLightPositions[16] = glm::vec3(30.5345f, lightHeight, 60.612f);
 
 
 
@@ -625,14 +706,6 @@ int main() {
 
     if (mainTheme) SoundEngine->play2D(mainTheme, true);
 
-
-
-    // Inizializza il GameContext con il puntatore alle casse
-
-    //GameContext context = { &sword, &minotaur, &camera, &chests };
-
-
-
     // Inizializza il GameContext con i puntatori corretti
 
     GameContext context = { &sword, &minotaur, &camera, &dungeonRooms };
@@ -668,6 +741,17 @@ int main() {
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
         glm::mat4 view = camera.GetViewMatrix();
+
+
+        // Calcola l'intensità della luce pulsante usando il tempo di gioco
+        float time = glfwGetTime();
+        // La funzione sin() oscilla tra -1 e 1. La mappiamo nell'intervallo [0.5, 1.0]
+        // in modo che la luce si attenui al 50% e torni al 100%, senza mai spegnersi.
+        // Il valore 5.0f controlla la velocità del tremolio. Aumentalo per un effetto più rapido.
+        float flickerIntensity = 0.75f + sin(time * 20.0f) * 0.25f;
+
+        // Calcola il colore diffuso aggiornato in base all'intensità
+        glm::vec3 flickeringDiffuse = spotLightDiffuse * flickerIntensity;
 
 
 
@@ -731,6 +815,22 @@ int main() {
 
                 powerUpMessageTimer.Update(deltaTime);
 
+                for (size_t i = 0; i < wallSconces.size(); ++i) {
+                    WallSconce& sconce = wallSconces[i];
+
+                    // 1. Crea la matrice di rotazione per la torcia corrente
+                    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(sconce.rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+
+                    // 2. Ruota il vettore di offset locale della fiamma
+                    glm::vec3 rotatedOffset = glm::vec3(rotationMatrix * glm::vec4(sconce.flameOffset, 1.0f));
+
+                    // 3. Calcola la posizione finale della fiamma nel mondo
+                    glm::vec3 firePosition = sconce.position + rotatedOffset;
+
+                    // 4. Aggiorna l'emettitore con la posizione corretta
+                    fireEmitters[i].Update(deltaTime, firePosition, 30); // Genera poche particelle per frame
+                }
+
                 unlockMessageTimer.Update(deltaTime);
                 damageEffectTimer.Update(deltaTime); // <-- AGGIORNAMENTO NUOVO TIMER
 
@@ -749,29 +849,30 @@ int main() {
             mazeShader.setInt("activeSpotLights", NR_SPOT_LIGHTS);
 
             for (int i = 0; i < NR_SPOT_LIGHTS; ++i) {
-
                 std::string lightUni = "spotLights[" + std::to_string(i) + "]";
-
                 mazeShader.setVec3(lightUni + ".position", spotLightPositions[i]);
-
                 mazeShader.setVec3(lightUni + ".direction", spotLightDirection);
-
                 mazeShader.setFloat(lightUni + ".cutOff", spotLightCutOff);
-
                 mazeShader.setFloat(lightUni + ".outerCutOff", spotLightOuterCutOff);
-
                 mazeShader.setVec3(lightUni + ".ambient", spotLightAmbient);
-
-                mazeShader.setVec3(lightUni + ".diffuse", spotLightDiffuse);
-
+                mazeShader.setVec3(lightUni + ".diffuse", flickeringDiffuse);
                 mazeShader.setVec3(lightUni + ".specular", spotLightSpecular);
-
                 mazeShader.setFloat(lightUni + ".constant", spotLightConstant);
-
                 mazeShader.setFloat(lightUni + ".linear", spotLightLinear);
-
                 mazeShader.setFloat(lightUni + ".quadratic", spotLightQuadratic);
+            }
 
+            //Illuminazione particellare
+            mazeShader.setInt("activePointLights", activePointLights);
+            for (int i = 0; i < activePointLights; i++) {
+                std::string name = "pointLights[" + std::to_string(i) + "]";
+                mazeShader.setVec3(name + ".position", pointLightPositions[i]);
+                mazeShader.setVec3(name + ".ambient", 0.05f, 0.05f, 0.05f);
+                mazeShader.setVec3(name + ".diffuse", 0.8f, 0.6f, 0.2f);
+                mazeShader.setVec3(name + ".specular", 1.0f, 1.0f, 1.0f);
+                mazeShader.setFloat(name + ".constant", 1.0f);
+                mazeShader.setFloat(name + ".linear", 0.09f);
+                mazeShader.setFloat(name + ".quadratic", 0.032f);
             }
 
 
@@ -930,7 +1031,7 @@ int main() {
 
 
 
-            lampShader.use();
+            /*lampShader.use();
 
             lampShader.setMat4("projection", projection);
 
@@ -950,7 +1051,7 @@ int main() {
 
                 glDrawArrays(GL_TRIANGLES, 0, 36);
 
-            }
+            }*/
 
 
 
@@ -1270,6 +1371,38 @@ int main() {
 
         }
 
+        modelShader.use();
+        modelShader.setMat4("projection", projection);
+        modelShader.setMat4("view", view);
+        modelShader.setVec3("viewPos", camera.Position);
+        modelShader.setFloat("shininess", 32.0f);
+
+        // Passa le luci allo shader (come già fai)
+        for (int i = 0; i < NR_SPOT_LIGHTS; ++i) {
+            // ... il tuo ciclo for per le luci ...
+            std::string lightUni = "spotLights[" + std::to_string(i) + "]";
+            modelShader.setVec3(lightUni + ".position", spotLightPositions[i]);
+            modelShader.setVec3(lightUni + ".direction", spotLightDirection);
+            modelShader.setFloat(lightUni + ".cutOff", spotLightCutOff);
+            modelShader.setFloat(lightUni + ".outerCutOff", spotLightOuterCutOff);
+            modelShader.setVec3(lightUni + ".ambient", spotLightAmbient);
+            modelShader.setVec3(lightUni + ".diffuse", spotLightDiffuse);
+            modelShader.setVec3(lightUni + ".specular", spotLightSpecular);
+            modelShader.setFloat(lightUni + ".constant", spotLightConstant);
+            modelShader.setFloat(lightUni + ".linear", spotLightLinear);
+            modelShader.setFloat(lightUni + ".quadratic", spotLightQuadratic);
+        }
+
+        // Disegna le fiaccole
+        for (auto& sconce : wallSconces) {
+            sconce.Draw(modelShader);
+        }
+
+        // Disegna le particelle del fuoco
+        for (auto& emitter : fireEmitters) {
+            emitter.Draw(view, projection);
+        }
+
 
 
         glfwSwapBuffers(window);
@@ -1457,7 +1590,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 
-        // --- NUOVA LOGICA: Controlla se il colpo raggiunge i nemici delle stanze ---
+        
 
         for (auto& room : *context->dungeonRooms) {
 
