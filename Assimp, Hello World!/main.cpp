@@ -145,15 +145,11 @@ float playerAttackDamage = 50.0f;
 
 
 
+Timer victoryMessageTimer(5.0f); 
 
+Timer damageEffectTimer(0.5f); 
 
-// --- NUOVO TIMER PER MESSAGGIO VITTORIA ---
-
-Timer victoryMessageTimer(5.0f); // Il messaggio dura 5 secondi
-
-Timer damageEffectTimer(0.5f); // L'effetto dura mezzo secondo
-
-Timer cameraShakeTimer(0.3f); // <-- NUOVO TIMER
+Timer cameraShakeTimer(0.3f); 
 unsigned int damageOverlayTexture;
 
 
@@ -515,26 +511,20 @@ int main() {
 
     chestModel_ptr = new Model("resources/chest/chest.glb");
 
-
-
-    // --- AGGIUNGI QUESTA RIGA QUI ---
-
     enemyModel_ptr = new Model("resources/enemy/golem.glb");
 
     //Modello della fiaccola
     wallSconceModel_ptr = new Model("resources/torch/torch.glb");
 
-
-    // --- BLOCCO DA SOSTITUIRE ---
-    // Definisci una struttura per i dati della torcia, ora con l'offset
+    // struttura per i dati della torcia
     struct TorchData {
         glm::vec3 position;
         float     rotation;
         float     scale;
-        glm::vec3 flameOffset; // Offset locale per la fiamma
+        glm::vec3 flameOffset; 
     };
 
-    // Crea la tua lista di torce, specificando l'offset per ciascuna
+    // lista di torce
     std::vector<TorchData> torchPositions = {
         { glm::vec3(1.9f, 1.5f, 5.0f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
         { glm::vec3(1.9f, 1.5f, 18.90f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
@@ -558,9 +548,8 @@ int main() {
 
     if (wallSconceModel_ptr) {
         for (const auto& data : torchPositions) {
-            // Passa l'offset al costruttore della torcia
             wallSconces.emplace_back(*wallSconceModel_ptr, data.position, data.rotation, data.scale, data.flameOffset);
-            fireEmitters.emplace_back(500); // Riduci il numero di particelle per performance
+            fireEmitters.emplace_back(500); 
         }
     }
 
@@ -599,45 +588,6 @@ int main() {
     if (NR_SPOT_LIGHTS > 17) spotLightPositions[17] = glm::vec3(25.32f, 2.6f, 53.23f);
 
 
-
-    //float lightHeight = WALL_HEIGHT - 0.1f;
-
-    ////spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
-
-    //if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.03918f, lightHeight, 2.43882f);
-
-    //if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(2.03109f, lightHeight, 23.1429f);
-
-    //if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(12.167f, lightHeight, 14.8177f);
-
-    //if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(17.7564f, lightHeight, 25.4229f);
-
-    //if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(11.2421f, lightHeight, 28.5234f);
-
-    //if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(9.20282f, lightHeight, 3.86636f);
-
-    //if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(28.7836f, lightHeight, 2.01158f);
-
-    //if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(25.5885f, lightHeight, 12.5597f);
-
-    //if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(30.0438f, lightHeight, 41.6945f);
-
-    //if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(4.65741f, lightHeight, 31.8666f);
-
-    //if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(17.7664f, lightHeight, 42.9045f);
-
-    //if (NR_SPOT_LIGHTS > 12) spotLightPositions[12] = glm::vec3(7.44922f, lightHeight, 39.807f);
-
-    //if (NR_SPOT_LIGHTS > 13) spotLightPositions[13] = glm::vec3(2.04897f, lightHeight, 59.1026f);
-
-    //if (NR_SPOT_LIGHTS > 14) spotLightPositions[14] = glm::vec3(23.1384f, lightHeight, 50.7383f);
-
-    //if (NR_SPOT_LIGHTS > 15) spotLightPositions[15] = glm::vec3(9.20907f, lightHeight, 61.4568f);
-
-    //if (NR_SPOT_LIGHTS > 16) spotLightPositions[16] = glm::vec3(30.5345f, lightHeight, 60.612f);
-
-
-
     textureWall = loadtexture("resources/textures/lab_wall_diffuse.jpg");
 
     textureNormalWall = loadtexture("resources/textures/lab_wall_normal.jpg");
@@ -653,7 +603,7 @@ int main() {
     menuTexture = loadtexture("resources/textures/menu.jpg");
 
     endMenuTexture = loadtexture("resources/textures/endmenu.jpg");
-    // AGGIUNGI QUESTA RIGA
+
     damageOverlayTexture = loadtexture("resources/textures/damage_overlay.png", true);
 
 
