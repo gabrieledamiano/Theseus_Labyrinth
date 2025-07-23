@@ -1,8 +1,8 @@
 ﻿  animation.cpp
+  main.cpp
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\include\glm\gtx\norm.hpp(21,1): error C1189: #error:  "GLM: GLM_GTX_norm is an experimental extension and may change in the future. Use #define GLM_ENABLE_EXPERIMENTAL before including it, if you really want to use it."
   (compilazione del file di origine 'animation.cpp')
   
-  main.cpp
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
   (compilazione del file di origine 'main.cpp')
   
@@ -55,8 +55,8 @@ D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\minotaur.h(352,39): warning C4244: 'inizializzazione': conversione da 'float' a 'int'. Possibile perdita di dati.
   (compilazione del file di origine 'main.cpp')
   
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(749,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
-D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(924,61): warning C4267: 'argomento': conversione da 'size_t' a 'GLsizei'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(703,20): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\main.cpp(878,61): warning C4267: 'argomento': conversione da 'size_t' a 'GLsizei'. Possibile perdita di dati.
   particleEmitter.cpp
 D:\università\Magistrale\2° Anno\Grafica Avanzata\Theseus\Assimp, Hello World!\shader_m.h(56,40): warning C4101: 'e': variabile locale senza riferimenti
   (compilazione del file di origine 'particleEmitter.cpp')

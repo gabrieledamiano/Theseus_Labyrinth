@@ -35,7 +35,7 @@ public:
 
     Enemy(Model& model, glm::vec3 startPos, glm::vec4 bounds)
         : enemyModel(model), position(startPos), spawnPosition(startPos), patrolBounds(bounds),
-        health(3000.0f), orientation(0.0f), isAlive(true), collisionRadius(0.6f),
+        health(1000.0f), orientation(0.0f), isAlive(true), collisionRadius(0.6f),
         currentState(State::DORMANT), // I nemici ora partono in stato dormiente
         stateTimer(0.0f), didDealDamage(false)
     {
@@ -127,7 +127,7 @@ public:
     }
 
     void Reset(glm::vec3 startPos) {
-        health = 3000.0f;
+        health = 1000.0f;
         isAlive = true;
         position = startPos;
         spawnPosition = startPos;

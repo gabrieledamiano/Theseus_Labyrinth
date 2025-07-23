@@ -98,6 +98,18 @@ struct GameContext {
 };
 
 
+// In main.cpp, dopo la struct GameContext
+
+struct MazeChunk {
+    unsigned int VAO, VBO;
+    int vertexCount;
+    glm::vec3 center;
+    glm::vec3 size;
+};
+
+std::vector<MazeChunk> mazeChunks; // Un vettore globale per i nostri chunk
+
+
 
 // --- STATO DEL GIOCO ---
 
@@ -175,6 +187,12 @@ std::string lastPowerUpMessage = "";
 std::vector<WallSconce> wallSconces;
 Model* wallSconceModel_ptr = nullptr;
 
+
+// --- NUOVE VARIABILI PER LE STATUE ---
+Model* statueModel_ptr = nullptr;
+std::vector<Model> statues; // Un semplice vettore di modelli
+std::vector<glm::mat4> statueMatrices; // E le loro matrici per la posizione/rotazione
+
 //Variabili per il sistema particellare
 std::vector<ParticleEmitter> fireEmitters;
 
@@ -194,6 +212,13 @@ const float PLAYER_MAX_STAMINA = 100.0f;
 const float SPRINT_DRAIN_RATE = 25.0f; // Punti al secondo
 
 const float STAMINA_REGEN_RATE = 15.0f; // Punti al secondo
+
+
+// --- VARIABILI PER IL CONTATORE FPS ---
+bool showFPS = false;
+int frameCount = 0;
+float timeSinceLastUpdate = 0.0f;
+int fps = 0;
 
 
 // Muro = 1, Minotauro = 2, Uscita = 3, Casse = 4
@@ -221,7 +246,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1 },
 
-    { 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
+    { 1, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
 
     { 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
 
@@ -235,7 +260,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1 },
 
-    { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
+    { 1, 5, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
 
     { 1, 0, 0, 4, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
 
@@ -243,9 +268,9 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
 
-    { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2, 0, 0, 0, 1 },
-
     { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 5, 1 },
 
     { 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
 
@@ -397,7 +422,9 @@ bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur);
 
 bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur); //nuovo
 
-void setupMazeGeometryVAOs();
+//void setupMazeGeometryVAOs();
+
+void setupMazeGeometry();
 
 void setupMenuVAO();
 
@@ -410,6 +437,26 @@ void PlayerTakeDamage(float damage);
 inline unsigned int TextureFromFile(const char* path, const std::string& directory, bool gamma);
 
 void FindPathForHint(glm::vec2 start, glm::vec2 target, std::vector<glm::vec3>& path);
+bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::vec3& size);
+
+
+
+// In main.cpp, prima della funzione main()
+
+// Controlla se un cubo (definito da centro e dimensione) è nel frustum della camera
+bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::vec3& size) {
+    for (const auto& plane : cam.frustum) {
+        glm::vec3 extents = size * 0.5f;
+        float r = extents.x * abs(plane.normal.x) +
+            extents.y * abs(plane.normal.y) +
+            extents.z * abs(plane.normal.z);
+        float d = glm::dot(plane.normal, center) + plane.distance;
+        if (d < -r) {
+            return false; // L'oggetto è completamente fuori da questo piano
+        }
+    }
+    return true; // L'oggetto è visibile (o interseca il frustum)
+}
 
 
 
@@ -606,11 +653,15 @@ int main() {
 
     damageOverlayTexture = loadtexture("resources/textures/damage_overlay.png", true);
 
+    statueModel_ptr = new Model("resources/statua/statua.glb");
+
 
 
     setupMenuVAO();
 
-    setupMazeGeometryVAOs();
+
+    setupMazeGeometry(); // <-- NUOVA CHIAMATA
+    //setupMazeGeometryVAOs();
 
 
 
@@ -676,6 +727,15 @@ int main() {
 
         lastFrame = currentFrame;
 
+        // --- CALCOLO FPS ---
+        timeSinceLastUpdate += deltaTime;
+        frameCount++;
+        if (timeSinceLastUpdate >= 1.0f) { // Aggiorna una volta al secondo
+            fps = frameCount;
+            frameCount = 0;
+            timeSinceLastUpdate = 0.0f;
+        }
+
         processInput(window);
 
 
@@ -689,6 +749,9 @@ int main() {
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
         glm::mat4 view = camera.GetViewMatrix();
+
+        // --- NUOVO: AGGIORNA IL FRUSTUM AD OGNI FRAME ---
+        camera.UpdateFrustum(view, projection);
 
 
         // Calcola l'intensità della luce pulsante usando il tempo di gioco
@@ -764,33 +827,32 @@ int main() {
 
                 }
 
-                // --- AGGIORNA IL NUOVO TIMER ---
 
                 victoryMessageTimer.Update(deltaTime);
 
-                // --- AGGIUNTA CASSE: Aggiorna il timer del messaggio power-up ---
+                // --- AGGIUNTA CASSE ---
 
                 powerUpMessageTimer.Update(deltaTime);
 
+                // Aggiorna le particelle SOLO per le fiaccole visibili
                 for (size_t i = 0; i < wallSconces.size(); ++i) {
                     WallSconce& sconce = wallSconces[i];
+                    // Definiamo un "cubo" invisibile che contiene la fiaccola
+                    glm::vec3 sconceSize = glm::vec3(1.0f, 2.5f, 1.0f);
 
-                    // 1. Crea la matrice di rotazione per la torcia corrente
-                    glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(sconce.rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
-
-                    // 2. Ruota il vettore di offset locale della fiamma
-                    glm::vec3 rotatedOffset = glm::vec3(rotationMatrix * glm::vec4(sconce.flameOffset, 1.0f));
-
-                    // 3. Calcola la posizione finale della fiamma nel mondo
-                    glm::vec3 firePosition = sconce.position + rotatedOffset;
-
-                    // 4. Aggiorna l'emettitore con la posizione corretta
-                    fireEmitters[i].Update(deltaTime, firePosition, 30); // Genera poche particelle per frame
+                    // Controlliamo se questo cubo è visibile
+                    if (CheckBoxInFrustum(camera, sconce.position, sconceSize)) {
+                        // Se lo è, calcoliamo la posizione della fiamma e aggiorniamo le particelle
+                        glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(sconce.rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+                        glm::vec3 rotatedOffset = glm::vec3(rotationMatrix * glm::vec4(sconce.flameOffset, 1.0f));
+                        glm::vec3 firePosition = sconce.position + rotatedOffset;
+                        fireEmitters[i].Update(deltaTime, firePosition, 30);
+                    }
                 }
 
                 unlockMessageTimer.Update(deltaTime);
-                damageEffectTimer.Update(deltaTime); // <-- AGGIORNAMENTO NUOVO TIMER
-                cameraShakeTimer.Update(deltaTime); // <-- AGGIORNA IL NUOVO TIMER
+                damageEffectTimer.Update(deltaTime); 
+                cameraShakeTimer.Update(deltaTime); 
 
             }
 
@@ -901,27 +963,15 @@ int main() {
 
             glBindVertexArray(VAO_walls);
 
-            for (int y = 0; y < MAZE_HEIGHT; ++y) {
-
-                for (int x = 0; x < MAZE_WIDTH; ++x) {
-
-                    if (maze[y][x].wall) {
-
-                        glm::mat4 model = glm::mat4(1.0f);
-
-                        model = glm::translate(model, glm::vec3(x * CELL_SIZE + CELL_SIZE / 2.0f, WALL_HEIGHT / 2.0f, y * CELL_SIZE + CELL_SIZE / 2.0f));
-
-                        model = glm::scale(model, glm::vec3(CELL_SIZE, WALL_HEIGHT, CELL_SIZE));
-
-                        mazeShader.setMat4("model", model);
-
-                        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-                    }
-
+            for (const auto& chunk : mazeChunks) {
+                // Controlla la visibilità dell'INTERO CHUNK
+                if (CheckBoxInFrustum(camera, chunk.center, chunk.size)) {
+                    glBindVertexArray(chunk.VAO);
+                    // Disegna tutti i muri del chunk con una sola chiamata
+                    glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
                 }
-
             }
+            glBindVertexArray(0);
 
 
 
@@ -933,15 +983,13 @@ int main() {
 
                 animModelShader.setMat4("view", view);
 
-                //animModelShader.setVec3("viewPos", camera.Position);
-
                 minotaur.Draw(animModelShader);
 
             }
 
 
 
-            // --- AGGIUNTA CASSE: Render delle casse ---
+            // --- Render delle casse ---
 
             modelShader.use();
 
@@ -950,14 +998,11 @@ int main() {
             modelShader.setMat4("view", view);
 
 
-
-            // --- CORREZIONE: Render delle Casse e dei loro Nemici ---
-
             for (auto& room : dungeonRooms) {
 
                 // Disegna la cassa della stanza
 
-                modelShader.use(); // Usa lo shader per modelli statici
+                modelShader.use(); 
 
                 modelShader.setMat4("projection", projection);
 
@@ -965,13 +1010,15 @@ int main() {
 
                 modelShader.setVec3("viewPos", camera.Position);
 
-                room.chest.Draw(modelShader);
+                if (CheckBoxInFrustum(camera, room.chest.position, glm::vec3(1.0f))) {
 
+                    room.chest.Draw(modelShader);
+                }
 
 
                 // Disegna i nemici della stanza
 
-                modelShader.use(); // Usa lo shader per modelli statici (o animModelShader se sono animati)
+                modelShader.use(); 
 
                 modelShader.setMat4("projection", projection);
 
@@ -981,39 +1028,25 @@ int main() {
 
                 for (auto& enemy : room.enemies) {
 
-                    enemy.Draw(modelShader);
+                    if (CheckBoxInFrustum(camera, enemy.position, glm::vec3(1.0f, 2.0f, 1.0f))) {
+
+                        enemy.Draw(modelShader);
+                    }
 
                 }
 
             }
+            // --- RENDER DELLE STATUE CON CULLING ---
+            modelShader.use();
+            for (size_t i = 0; i < statues.size(); ++i) {
+                glm::vec3 statuePos = glm::vec3(statueMatrices[i][3]);
+                glm::vec3 statueSize = glm::vec3(2.0f, 4.0f, 2.0f);
 
-
-
-            /*lampShader.use();
-
-            lampShader.setMat4("projection", projection);
-
-            lampShader.setMat4("view", view);
-
-            glBindVertexArray(VAO_lamp);
-
-            for (int i = 0; i < NR_SPOT_LIGHTS; ++i) {
-
-                glm::mat4 model = glm::mat4(1.0f);
-
-                model = glm::translate(model, spotLightPositions[i]);
-
-                model = glm::scale(model, glm::vec3(0.15f));
-
-                lampShader.setMat4("model", model);
-
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-
-            }*/
-
-
-
-
+                if (CheckBoxInFrustum(camera, statuePos, statueSize)) {
+                    modelShader.setMat4("model", statueMatrices[i]);
+                    statues[i].Draw(modelShader);
+                }
+            }
 
 
 
@@ -1027,6 +1060,12 @@ int main() {
 
             glDisable(GL_DEPTH_TEST);
 
+            // --- NUOVO: Disegna il contatore FPS ---
+            if (showFPS) {
+                std::string fpsText = "FPS: " + std::to_string(fps);
+                RenderText(fpsText.c_str(), SCR_WIDTH - 120.0f, SCR_HEIGHT - 30.0f, 0.5f, glm::vec3(0.0, 1.0, 0.0f));
+            }
+
             RenderText(("Salute: " + std::to_string(static_cast<int>(playerHealth))).c_str(), 10.0f, SCR_HEIGHT - 60.0f, 0.7f, glm::vec3(0.5, 1.0, 0.5f));
 
 
@@ -1036,26 +1075,24 @@ int main() {
             }
 
 
-            // --- NUOVO: RENDER EFFETTO DANNO ---
-        // Lo disegniamo dopo la scena 3D ma prima dell'HUD
             if (damageEffectTimer.IsActive()) {
                 glDisable(GL_DEPTH_TEST); // Disabilita il test di profondità per disegnarlo sopra a tutto
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                menuShader.use(); // Riutilizziamo lo shader del menu che disegna una texture a schermo intero
+                menuShader.use(); 
 
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, damageOverlayTexture);
 
-                glBindVertexArray(menuVAO); // Riutilizziamo il VAO del menu che è un quad a schermo intero
+                glBindVertexArray(menuVAO);
                 glDrawArrays(GL_TRIANGLES, 0, 6);
 
                 glEnable(GL_DEPTH_TEST); // Riabilita il test di profondità
             }
 
 
-            // --- STAMINA: Disegna la barra della stamina ---
+            // --- STAMINA ---
 
             std::string staminaBar = "Stamina: [";
 
@@ -1076,10 +1113,6 @@ int main() {
 
 
             // --- BARRA VITA MINOTAURO ---
-
-            // Mostra la barra solo se il Minotauro è nel raggio di avviso e di fronte al giocatore
-
-            // Logica per Barra Vita / Messaggio Sconfitta Minotauro
 
             if (victoryMessageTimer.IsActive()) {
 
@@ -1251,7 +1284,7 @@ int main() {
 
 
 
-            // Ora, disegna una barra per ogni nemico nella lista dei visibili
+            // barra per ogni nemico nella lista dei visibili
 
             if (!visibleEnemies.empty()) {
 
@@ -1335,9 +1368,8 @@ int main() {
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setFloat("shininess", 32.0f);
 
-        // Passa le luci allo shader (come già fai)
+
         for (int i = 0; i < NR_SPOT_LIGHTS; ++i) {
-            // ... il tuo ciclo for per le luci ...
             std::string lightUni = "spotLights[" + std::to_string(i) + "]";
             modelShader.setVec3(lightUni + ".position", spotLightPositions[i]);
             modelShader.setVec3(lightUni + ".direction", spotLightDirection);
@@ -1351,14 +1383,18 @@ int main() {
             modelShader.setFloat(lightUni + ".quadratic", spotLightQuadratic);
         }
 
-        // Disegna le fiaccole
-        for (auto& sconce : wallSconces) {
-            sconce.Draw(modelShader);
-        }
+        // Disegna le fiaccole e le loro fiamme (solo se visibili)
+        for (size_t i = 0; i < wallSconces.size(); ++i) {
+            WallSconce& sconce = wallSconces[i];
+            // Usiamo la stessa dimensione del "cubo" invisibile
+            glm::vec3 sconceSize = glm::vec3(1.0f, 2.5f, 1.0f);
 
-        // Disegna le particelle del fuoco
-        for (auto& emitter : fireEmitters) {
-            emitter.Draw(view, projection);
+            // Controlliamo di nuovo la visibilità
+            if (CheckBoxInFrustum(camera, sconce.position, sconceSize)) {
+                // Se la fiaccola è visibile, disegna sia il suo modello che le particelle della fiamma
+                sconce.Draw(modelShader);
+                fireEmitters[i].Draw(view, projection); // Disegna la fiamma associata
+            }
         }
 
 
@@ -1479,9 +1515,8 @@ void PlayerTakeDamage(float damage) {
 
         if (playerHealth < 0) playerHealth = 0;
 
-        // --- ATTIVA L'EFFETTO VISIVO E SONORO ---
         damageEffectTimer.Start();
-        cameraShakeTimer.Start(); // <-- ATTIVA IL TREMORE
+        cameraShakeTimer.Start(); 
         if (playerHurtSound) SoundEngine->play2D(playerHurtSound, false);
 
         std::cout << "Player health: " << playerHealth << std::endl;
@@ -1814,6 +1849,8 @@ void FindPathForHint(glm::vec2 start, glm::vec2 target, std::vector<glm::vec3>& 
 
 
 
+
+
 void processInput(GLFWwindow* window) {
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -2010,6 +2047,16 @@ void processInput(GLFWwindow* window) {
 
             p_key_pressed = false;
 
+        }
+
+        // --- NUOVA LOGICA PER IL TASTO F ---
+        static bool f_key_pressed = false;
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !f_key_pressed) {
+            f_key_pressed = true;
+            showFPS = !showFPS; // Inverte lo stato di visibilità
+        }
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
+            f_key_pressed = false;
         }
 
 
@@ -2260,6 +2307,17 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
 
                 dungeonRooms.emplace_back(chest, std::move(enemies), bounds);
 
+            }
+            // --- NUOVA LOGICA PER LE STATUE ---
+            else if (initial_maze_map[y][x] == 5 && statueModel_ptr) {
+                statues.push_back(*statueModel_ptr);
+
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(worldX, 0.9f, worldZ));
+                model = glm::rotate(model, glm::radians(270.0f * (rand() % 4)), glm::vec3(0.0f, 1.0f, 0.0f));
+                model = glm::scale(model, glm::vec3(0.8f)); 
+
+                statueMatrices.push_back(model);
             }
 
         }
@@ -2578,250 +2636,430 @@ void setupMenuVAO() {
 
 
 
-void setupMazeGeometryVAOs() {
+//void setupMazeGeometryVAOs() {
+//
+//    float cubeVertices[] = {
+//
+//        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+//
+//        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+//
+//        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+//
+//        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+//
+//        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+//
+//        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+//
+//        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+//
+//         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+//
+//         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+//
+//        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+//
+//         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+//
+//         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+//
+//         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+//
+//        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+//
+//        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+//
+//        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+//
+//         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+//
+//         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+//
+//         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+//
+//        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+//
+//        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f
+//
+//    };
+//
+//    glGenBuffers(1, &VBO_cube_lit);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
+//
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+//
+//
+//
+//    glGenVertexArrays(1, &VAO_walls);
+//
+//    glBindVertexArray(VAO_walls);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
+//
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
+//
+//    glEnableVertexAttribArray(0);
+//
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(1);
+//
+//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(2);
+//
+//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(3);
+//
+//    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(4);
+//
+//
+//
+//    float mazeW = (float)MAZE_WIDTH * CELL_SIZE;
+//
+//    float mazeD = (float)MAZE_HEIGHT * CELL_SIZE;
+//
+//    float textureRepeatX = mazeW / CELL_SIZE;
+//
+//    float textureRepeatZ = mazeD / CELL_SIZE;
+//
+//
+//
+//    float floorVertices[] = {
+//
+//        mazeW, 0.0f, mazeD,    0.0f, 1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+//
+//        mazeW, 0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+//
+//        0.0f,  0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+//
+//        0.0f,  0.0f, mazeD,    0.0f, 1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+//
+//    };
+//
+//    unsigned int planeIndices[] = { 0, 1, 3, 1, 2, 3 };
+//
+//    unsigned int VBO_floor, EBO_floor;
+//
+//    glGenVertexArrays(1, &VAO_floor);
+//
+//    glGenBuffers(1, &VBO_floor);
+//
+//    glGenBuffers(1, &EBO_floor);
+//
+//    glBindVertexArray(VAO_floor);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_floor);
+//
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
+//
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_floor);
+//
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
+//
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
+//
+//    glEnableVertexAttribArray(0);
+//
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(1);
+//
+//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(2);
+//
+//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(3);
+//
+//    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(4);
+//
+//
+//
+//    float ceilingVertices[] = {
+//
+//        mazeW, WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+//
+//        0.0f,  WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+//
+//        0.0f,  WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+//
+//        mazeW, WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f
+//
+//    };
+//
+//    unsigned int ceilingIndices[] = { 0, 1, 3, 1, 2, 3 };
+//
+//    unsigned int VBO_ceiling, EBO_ceiling;
+//
+//    glGenVertexArrays(1, &VAO_ceiling);
+//
+//    glGenBuffers(1, &VBO_ceiling);
+//
+//    glGenBuffers(1, &EBO_ceiling);
+//
+//    glBindVertexArray(VAO_ceiling);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_ceiling);
+//
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(ceilingVertices), ceilingVertices, GL_STATIC_DRAW);
+//
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_ceiling);
+//
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ceilingIndices), ceilingIndices, GL_STATIC_DRAW);
+//
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
+//
+//    glEnableVertexAttribArray(0);
+//
+//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(1);
+//
+//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(2);
+//
+//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(3);
+//
+//    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+//
+//    glEnableVertexAttribArray(4);
+//
+//
+//
+//    glGenVertexArrays(1, &VAO_lamp);
+//
+//    glBindVertexArray(VAO_lamp);
+//
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
+//
+//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
+//
+//    glEnableVertexAttribArray(0);
+//
+//
+//
+//    glBindVertexArray(0);
+//
+//}
 
+// Rimuovi la vecchia setupMazeGeometryVAOs() e inserisci questa al suo posto
+
+void setupMazeGeometry() {
+
+    // --- PARTE 1: SETUP PAVIMENTO E SOFFITTO (dal tuo vecchio codice) ---
+    float mazeW = (float)MAZE_WIDTH * CELL_SIZE;
+    float mazeD = (float)MAZE_HEIGHT * CELL_SIZE;
+    float textureRepeatX = mazeW / CELL_SIZE;
+    float textureRepeatZ = mazeD / CELL_SIZE;
+
+    // Vertici del pavimento
+    float floorVertices[] = {
+        mazeW, 0.0f, mazeD,    0.0f, 1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        mazeW, 0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f,  0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f,  0.0f, mazeD,    0.0f, 1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
+    unsigned int planeIndices[] = { 0, 1, 3, 1, 2, 3 };
+    unsigned int VBO_floor, EBO_floor;
+    glGenVertexArrays(1, &VAO_floor);
+    glGenBuffers(1, &VBO_floor);
+    glGenBuffers(1, &EBO_floor);
+    glBindVertexArray(VAO_floor);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_floor);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_floor);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+
+    // Vertici del soffitto
+    float ceilingVertices[] = {
+        mazeW, WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        0.0f,  WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        0.0f,  WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        mazeW, WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f
+    };
+    unsigned int VBO_ceiling, EBO_ceiling;
+    glGenVertexArrays(1, &VAO_ceiling);
+    glGenBuffers(1, &VBO_ceiling);
+    glGenBuffers(1, &EBO_ceiling);
+    glBindVertexArray(VAO_ceiling);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_ceiling);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(ceilingVertices), ceilingVertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_ceiling);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+
+    // Pulisce i chunk dalla partita precedente
+    for (auto& chunk : mazeChunks) {
+        glDeleteVertexArrays(1, &chunk.VAO);
+        glDeleteBuffers(1, &chunk.VBO);
+    }
+    mazeChunks.clear();
+
+    // Dati di base per un singolo cubo-muro (come quelli che usavi prima)
     float cubeVertices[] = {
-
+        // positions           // normals            // texcoords   // tangent            // bitangent
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
         -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
 
         -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
         -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-
         -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
 
         -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-
         -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-
         -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-
         -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-
         -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-
         -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
 
          0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-
          0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
 
         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-
          0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-
          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-
          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-
         -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-
         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
 
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-
          0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-
          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-
          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-
         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f
-
     };
 
-    glGenBuffers(1, &VBO_cube_lit);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-
-
-
-    glGenVertexArrays(1, &VAO_walls);
-
-    glBindVertexArray(VAO_walls);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
-
-    glEnableVertexAttribArray(2);
-
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
-
-    glEnableVertexAttribArray(3);
-
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
-
-    glEnableVertexAttribArray(4);
-
-
-
-    float mazeW = (float)MAZE_WIDTH * CELL_SIZE;
-
-    float mazeD = (float)MAZE_HEIGHT * CELL_SIZE;
-
-    float textureRepeatX = mazeW / CELL_SIZE;
-
-    float textureRepeatZ = mazeD / CELL_SIZE;
-
-
-
-    float floorVertices[] = {
-
-        mazeW, 0.0f, mazeD,    0.0f, 1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-
-        mazeW, 0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-
-        0.0f,  0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-
-        0.0f,  0.0f, mazeD,    0.0f, 1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
-
-    };
-
-    unsigned int planeIndices[] = { 0, 1, 3, 1, 2, 3 };
-
-    unsigned int VBO_floor, EBO_floor;
-
-    glGenVertexArrays(1, &VAO_floor);
-
-    glGenBuffers(1, &VBO_floor);
-
-    glGenBuffers(1, &EBO_floor);
-
-    glBindVertexArray(VAO_floor);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_floor);
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_floor);
-
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
-
-    glEnableVertexAttribArray(2);
-
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
-
-    glEnableVertexAttribArray(3);
-
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
-
-    glEnableVertexAttribArray(4);
-
-
-
-    float ceilingVertices[] = {
-
-        mazeW, WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-
-        0.0f,  WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-
-        0.0f,  WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-
-        mazeW, WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f
-
-    };
-
-    unsigned int ceilingIndices[] = { 0, 1, 3, 1, 2, 3 };
-
-    unsigned int VBO_ceiling, EBO_ceiling;
-
-    glGenVertexArrays(1, &VAO_ceiling);
-
-    glGenBuffers(1, &VBO_ceiling);
-
-    glGenBuffers(1, &EBO_ceiling);
-
-    glBindVertexArray(VAO_ceiling);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_ceiling);
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(ceilingVertices), ceilingVertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_ceiling);
-
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ceilingIndices), ceilingIndices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
-
-    glEnableVertexAttribArray(2);
-
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
-
-    glEnableVertexAttribArray(3);
-
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
-
-    glEnableVertexAttribArray(4);
-
-
-
-    glGenVertexArrays(1, &VAO_lamp);
-
-    glBindVertexArray(VAO_lamp);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-
-    glEnableVertexAttribArray(0);
-
-
-
-    glBindVertexArray(0);
-
+    const int CHUNK_SIZE = 10;
+    const int stride = 14; // 14 float per vertice (pos, normal, uv, tangent, bitangent)
+
+    for (int y = 0; y < MAZE_HEIGHT; y += CHUNK_SIZE) {
+        for (int x = 0; x < MAZE_WIDTH; x += CHUNK_SIZE) {
+
+            std::vector<float> chunkVertices;
+            int wallCount = 0;
+
+            for (int cy = y; cy < y + CHUNK_SIZE && cy < MAZE_HEIGHT; ++cy) {
+                for (int cx = x; cx < x + CHUNK_SIZE && cx < MAZE_WIDTH; ++cx) {
+                    if (maze[cy][cx].wall) {
+                        wallCount++;
+                        glm::vec3 wallPos(cx * CELL_SIZE + CELL_SIZE / 2.0f, WALL_HEIGHT / 2.0f, cy * CELL_SIZE + CELL_SIZE / 2.0f);
+
+                        // Aggiungi i vertici del cubo, traslati alla posizione corretta
+                        for (int i = 0; i < 36 * stride; i += stride) {
+                            chunkVertices.push_back(cubeVertices[i] * CELL_SIZE + wallPos.x);     // Pos X
+                            chunkVertices.push_back(cubeVertices[i + 1] * WALL_HEIGHT + wallPos.y); // Pos Y
+                            chunkVertices.push_back(cubeVertices[i + 2] * CELL_SIZE + wallPos.z);   // Pos Z
+                            for (int j = 3; j < stride; ++j) {
+                                chunkVertices.push_back(cubeVertices[i + j]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (wallCount == 0) continue;
+
+            MazeChunk chunk;
+            chunk.vertexCount = wallCount * 36;
+            chunk.center = glm::vec3((x + CHUNK_SIZE / 2.0f) * CELL_SIZE, WALL_HEIGHT / 2.0f, (y + CHUNK_SIZE / 2.0f) * CELL_SIZE);
+            chunk.size = glm::vec3(CHUNK_SIZE * CELL_SIZE, WALL_HEIGHT, CHUNK_SIZE * CELL_SIZE);
+
+            glGenVertexArrays(1, &chunk.VAO);
+            glGenBuffers(1, &chunk.VBO);
+            glBindVertexArray(chunk.VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, chunk.VBO);
+            glBufferData(GL_ARRAY_BUFFER, chunkVertices.size() * sizeof(float), chunkVertices.data(), GL_STATIC_DRAW);
+
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(3 * sizeof(float)));
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(6 * sizeof(float)));
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(8 * sizeof(float)));
+            glEnableVertexAttribArray(4);
+            glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(11 * sizeof(float)));
+
+            glBindVertexArray(0);
+            mazeChunks.push_back(chunk);
+        }
+    }
+
+    // Non abbiamo più bisogno di questi VAO/VBO globali per i muri
+    // glDeleteVertexArrays(1, &VAO_walls);
+    // glDeleteBuffers(1, &VBO_cube_lit);
 }
