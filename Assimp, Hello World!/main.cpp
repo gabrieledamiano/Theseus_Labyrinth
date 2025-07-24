@@ -446,7 +446,7 @@ bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::ve
 // Controlla se un cubo (definito da centro e dimensione) è nel frustum della camera
 bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::vec3& size) {
     for (const auto& plane : cam.frustum) {
-        glm::vec3 extents = size * 0.5f;
+        glm::vec3 extents = size * 0.8f;
         float r = extents.x * abs(plane.normal.x) +
             extents.y * abs(plane.normal.y) +
             extents.z * abs(plane.normal.z);
@@ -830,8 +830,6 @@ int main() {
 
                 victoryMessageTimer.Update(deltaTime);
 
-                // --- AGGIUNTA CASSE ---
-
                 powerUpMessageTimer.Update(deltaTime);
 
                 // Aggiorna le particelle SOLO per le fiaccole visibili
@@ -896,7 +894,7 @@ int main() {
             }
 
 
-
+            // RENDER FLOOR
             glActiveTexture(GL_TEXTURE0);
 
             glBindTexture(GL_TEXTURE_2D, textureFloor);
@@ -912,31 +910,7 @@ int main() {
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
-
-
-
-
-
-            if (showHint && !hintPath.empty()) {
-
-                hintShader->use();
-
-                hintShader->setMat4("projection", projection);
-
-                hintShader->setMat4("view", view);
-
-                hintShader->setMat4("model", glm::mat4(1.0f));
-
-                glBindVertexArray(hintVAO);
-
-                glDrawArrays(GL_LINE_STRIP, 0, hintPath.size());
-
-                glBindVertexArray(0);
-
-            }
-
-
-
+            // RENDER CEILING
             glActiveTexture(GL_TEXTURE0);
 
             glBindTexture(GL_TEXTURE_2D, textureCeiling);
@@ -952,7 +926,7 @@ int main() {
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
-
+            // RENDER WALLS
             glActiveTexture(GL_TEXTURE0);
 
             glBindTexture(GL_TEXTURE_2D, textureWall);
@@ -961,7 +935,31 @@ int main() {
 
             glBindTexture(GL_TEXTURE_2D, textureNormalWall);
 
-            glBindVertexArray(VAO_walls);
+            //glBindVertexArray(VAO_walls);
+
+
+            // // RENDER ARIADNE'S THREAD (HINT) 
+            //if (showHint && !hintPath.empty()) {
+
+            //    glDepthMask(GL_FALSE);
+
+            //    hintShader->use();
+
+            //    hintShader->setMat4("projection", projection);
+
+            //    hintShader->setMat4("view", view);
+
+            //    hintShader->setMat4("model", glm::mat4(1.0f));
+
+            //    glBindVertexArray(hintVAO);
+
+            //    glDrawArrays(GL_LINE_STRIP, 0, hintPath.size());
+
+            //    glBindVertexArray(0);
+
+            //    glDepthMask(GL_TRUE);
+
+            //}
 
             for (const auto& chunk : mazeChunks) {
                 // Controlla la visibilità dell'INTERO CHUNK
@@ -969,9 +967,10 @@ int main() {
                     glBindVertexArray(chunk.VAO);
                     // Disegna tutti i muri del chunk con una sola chiamata
                     glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
+                    glBindVertexArray(0);
                 }
             }
-            glBindVertexArray(0);
+            
 
 
 
@@ -1060,6 +1059,31 @@ int main() {
 
             glDisable(GL_DEPTH_TEST);
 
+            // RENDER ARIADNE'S THREAD (HINT)
+            if (showHint && !hintPath.empty()) {
+                // Disabilita temporaneamente il depth test per assicurarsi che il filo sia sempre visibile
+                glDisable(GL_DEPTH_TEST);
+
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                hintShader->use();
+                hintShader->setMat4("projection", projection);
+                hintShader->setMat4("view", view);
+                hintShader->setMat4("model", glm::mat4(1.0f));
+ 
+                glLineWidth(3.0f);
+
+                glBindVertexArray(hintVAO);
+                glDrawArrays(GL_LINE_STRIP, 0, hintPath.size());
+                glBindVertexArray(0);
+
+                glDisable(GL_BLEND);
+                glEnable(GL_DEPTH_TEST); // Riabilita per il resto del rendering
+            }
+
+
+
             // --- NUOVO: Disegna il contatore FPS ---
             if (showFPS) {
                 std::string fpsText = "FPS: " + std::to_string(fps);
@@ -1071,7 +1095,7 @@ int main() {
 
             if (unlockMessageTimer.IsActive()) {
                 RenderText("HAI SBLOCCATO IL FILO CHE CONDUCE ALLA LIBERTA'. PREMI H PER UTILIZZARLO",
-                    SCR_WIDTH / 2.0f - 220.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.84, 0.0)); // Colore oro
+                    SCR_WIDTH / 2.0f - 240.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.84, 0.0)); // Colore oro
             }
 
 
@@ -1218,7 +1242,7 @@ int main() {
 
                 else {
 
-                    RenderText("Apri la cassa (E)", SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0f));
+                    RenderText("Apri la cassa (E)", SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f - 30.0f, 0.7f, glm::vec3(1.0f));
 
                 }
 
@@ -1228,7 +1252,7 @@ int main() {
 
             if (powerUpMessageTimer.IsActive()) {
 
-                RenderText(lastPowerUpMessage.c_str(), SCR_WIDTH / 2.0f - 220.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.5, 0.0));
+                RenderText(lastPowerUpMessage.c_str(), SCR_WIDTH / 2.0f - 200.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.5, 0.0));
 
             }
 
@@ -1411,7 +1435,11 @@ int main() {
 
     delete hintShader;
 
-    glDeleteVertexArrays(1, &VAO_walls);
+    //glDeleteVertexArrays(1, &VAO_walls);
+    for (auto& chunk : mazeChunks) {
+        glDeleteVertexArrays(1, &chunk.VAO);
+        glDeleteBuffers(1, &chunk.VBO);
+    }
 
     glDeleteVertexArrays(1, &VAO_floor);
 
@@ -2888,7 +2916,7 @@ void setupMenuVAO() {
 
 void setupMazeGeometry() {
 
-    // --- PARTE 1: SETUP PAVIMENTO E SOFFITTO (dal tuo vecchio codice) ---
+    // --- PARTE 1: SETUP PAVIMENTO E SOFFITTO  ---
     float mazeW = (float)MAZE_WIDTH * CELL_SIZE;
     float mazeD = (float)MAZE_HEIGHT * CELL_SIZE;
     float textureRepeatX = mazeW / CELL_SIZE;
@@ -2956,7 +2984,7 @@ void setupMazeGeometry() {
     }
     mazeChunks.clear();
 
-    // Dati di base per un singolo cubo-muro (come quelli che usavi prima)
+    // Dati di base per un singolo cubo-muro 
     float cubeVertices[] = {
         // positions           // normals            // texcoords   // tangent            // bitangent
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
