@@ -201,6 +201,8 @@ const int MAX_POINT_LIGHTS = 10;
 glm::vec3 pointLightPositions[MAX_POINT_LIGHTS];
 int activePointLights = 0;
 
+// Aggiungila vicino alle altre costanti di gioco
+const float PARTICLE_ACTIVATION_RADIUS = 20.0f; // Raggio in unità di gioco. Puoi regolarlo.
 
 
 // --- STAMINA: Nuove variabili ---
@@ -835,15 +837,17 @@ int main() {
                 // Aggiorna le particelle SOLO per le fiaccole visibili
                 for (size_t i = 0; i < wallSconces.size(); ++i) {
                     WallSconce& sconce = wallSconces[i];
-                    // Definiamo un "cubo" invisibile che contiene la fiaccola
-                    glm::vec3 sconceSize = glm::vec3(1.0f, 2.5f, 1.0f);
 
-                    // Controlliamo se questo cubo è visibile
-                    if (CheckBoxInFrustum(camera, sconce.position, sconceSize)) {
-                        // Se lo è, calcoliamo la posizione della fiamma e aggiorniamo le particelle
+                    // Calcola la distanza tra il giocatore e la fiaccola
+                    float distanceToSconce = glm::distance(camera.Position, sconce.position);
+
+                    // Aggiorna il sistema di particelle se il giocatore è abbastanza vicino
+                    if (distanceToSconce < PARTICLE_ACTIVATION_RADIUS) {
+                        // Calcola la posizione della fiamma (come facevi prima)
                         glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(sconce.rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
                         glm::vec3 rotatedOffset = glm::vec3(rotationMatrix * glm::vec4(sconce.flameOffset, 1.0f));
                         glm::vec3 firePosition = sconce.position + rotatedOffset;
+
                         fireEmitters[i].Update(deltaTime, firePosition, 30);
                     }
                 }
@@ -894,36 +898,48 @@ int main() {
             }
 
 
-            // RENDER FLOOR
-            glActiveTexture(GL_TEXTURE0);
+            // --- DISEGNA IL PAVIMENTO (CON CULLING) ---
+            glm::vec3 floorCenter = glm::vec3((MAZE_WIDTH * CELL_SIZE) / 2.0f, 0.0f, (MAZE_HEIGHT * CELL_SIZE) / 2.0f);
+            glm::vec3 floorSize = glm::vec3(MAZE_WIDTH * CELL_SIZE, 0.1f, MAZE_HEIGHT * CELL_SIZE);
 
-            glBindTexture(GL_TEXTURE_2D, textureFloor);
+            if (CheckBoxInFrustum(camera, floorCenter, floorSize)) {
+                // RENDER FLOOR
+                glActiveTexture(GL_TEXTURE0);
 
-            glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, textureFloor);
 
-            glBindTexture(GL_TEXTURE_2D, textureNormalFloor);
+                glActiveTexture(GL_TEXTURE2);
 
-            glBindVertexArray(VAO_floor);
+                glBindTexture(GL_TEXTURE_2D, textureNormalFloor);
 
-            mazeShader.setMat4("model", glm::mat4(1.0f));
+                glBindVertexArray(VAO_floor);
 
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                mazeShader.setMat4("model", glm::mat4(1.0f));
+
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
 
 
-            // RENDER CEILING
-            glActiveTexture(GL_TEXTURE0);
+            // --- DISEGNA IL SOFFITTO (CON CULLING) ---
+            glm::vec3 ceilingCenter = glm::vec3((MAZE_WIDTH * CELL_SIZE) / 2.0f, WALL_HEIGHT, (MAZE_HEIGHT * CELL_SIZE) / 2.0f);
+            glm::vec3 ceilingSize = glm::vec3(MAZE_WIDTH * CELL_SIZE, 0.1f, MAZE_HEIGHT * CELL_SIZE);
 
-            glBindTexture(GL_TEXTURE_2D, textureCeiling);
+            if (CheckBoxInFrustum(camera, ceilingCenter, ceilingSize)) {
+                // RENDER CEILING
+                glActiveTexture(GL_TEXTURE0);
 
-            glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, textureCeiling);
 
-            glBindTexture(GL_TEXTURE_2D, textureNormalCeiling);
+                glActiveTexture(GL_TEXTURE2);
 
-            glBindVertexArray(VAO_ceiling);
+                glBindTexture(GL_TEXTURE_2D, textureNormalCeiling);
 
-            mazeShader.setMat4("model", glm::mat4(1.0f));
+                glBindVertexArray(VAO_ceiling);
 
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                mazeShader.setMat4("model", glm::mat4(1.0f));
+
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
 
 
             // RENDER WALLS
@@ -1408,16 +1424,23 @@ int main() {
         }
 
         // Disegna le fiaccole e le loro fiamme (solo se visibili)
+        // PASSO 1: Disegna tutti gli oggetti solidi (le fiaccole)
         for (size_t i = 0; i < wallSconces.size(); ++i) {
             WallSconce& sconce = wallSconces[i];
-            // Usiamo la stessa dimensione del "cubo" invisibile
-            glm::vec3 sconceSize = glm::vec3(1.0f, 2.5f, 1.0f);
 
-            // Controlliamo di nuovo la visibilità
+            // Disegna il modello 3D della fiaccola solo se è visibile nella telecamera
+            glm::vec3 sconceSize = glm::vec3(1.0f, 2.5f, 1.0f);
             if (CheckBoxInFrustum(camera, sconce.position, sconceSize)) {
-                // Se la fiaccola è visibile, disegna sia il suo modello che le particelle della fiamma
                 sconce.Draw(modelShader);
-                fireEmitters[i].Draw(view, projection); // Disegna la fiamma associata
+            }
+        }
+
+        // PASSO 2: Disegna tutti gli oggetti trasparenti (le particelle della fiamma)
+        for (size_t i = 0; i < wallSconces.size(); ++i) {
+            // Disegna le particelle della fiamma solo se il giocatore è nel raggio di attivazione
+            float distanceToSconce = glm::distance(camera.Position, wallSconces[i].position);
+            if (distanceToSconce < PARTICLE_ACTIVATION_RADIUS) {
+                fireEmitters[i].Draw(view, projection);
             }
         }
 
