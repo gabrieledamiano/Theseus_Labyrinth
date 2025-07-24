@@ -893,38 +893,47 @@ int main() {
                 mazeShader.setFloat(name + ".quadratic", 0.032f);
             }
 
+            // --- DISEGNA IL PAVIMENTO (CON CULLING) ---
+            glm::vec3 floorCenter = glm::vec3((MAZE_WIDTH * CELL_SIZE) / 2.0f, 0.0f, (MAZE_HEIGHT * CELL_SIZE) / 2.0f);
+            glm::vec3 floorSize = glm::vec3(MAZE_WIDTH * CELL_SIZE, 0.1f, MAZE_HEIGHT * CELL_SIZE);
 
-            // RENDER FLOOR
-            glActiveTexture(GL_TEXTURE0);
+            if (CheckBoxInFrustum(camera, floorCenter, floorSize)) {
+                // RENDER FLOOR
+                glActiveTexture(GL_TEXTURE0);
 
-            glBindTexture(GL_TEXTURE_2D, textureFloor);
+                glBindTexture(GL_TEXTURE_2D, textureFloor);
 
-            glActiveTexture(GL_TEXTURE2);
+                glActiveTexture(GL_TEXTURE2);
 
-            glBindTexture(GL_TEXTURE_2D, textureNormalFloor);
+                glBindTexture(GL_TEXTURE_2D, textureNormalFloor);
 
-            glBindVertexArray(VAO_floor);
+                glBindVertexArray(VAO_floor);
 
-            mazeShader.setMat4("model", glm::mat4(1.0f));
+                mazeShader.setMat4("model", glm::mat4(1.0f));
 
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
 
+            // --- DISEGNA IL SOFFITTO (CON CULLING) ---
+            glm::vec3 ceilingCenter = glm::vec3((MAZE_WIDTH * CELL_SIZE) / 2.0f, WALL_HEIGHT, (MAZE_HEIGHT * CELL_SIZE) / 2.0f);
+            glm::vec3 ceilingSize = glm::vec3(MAZE_WIDTH * CELL_SIZE, 0.1f, MAZE_HEIGHT * CELL_SIZE);
 
-            // RENDER CEILING
-            glActiveTexture(GL_TEXTURE0);
+            if (CheckBoxInFrustum(camera, ceilingCenter, ceilingSize)) {
+                // RENDER CEILING
+                glActiveTexture(GL_TEXTURE0);
 
-            glBindTexture(GL_TEXTURE_2D, textureCeiling);
+                glBindTexture(GL_TEXTURE_2D, textureCeiling);
 
-            glActiveTexture(GL_TEXTURE2);
+                glActiveTexture(GL_TEXTURE2);
 
-            glBindTexture(GL_TEXTURE_2D, textureNormalCeiling);
+                glBindTexture(GL_TEXTURE_2D, textureNormalCeiling);
 
-            glBindVertexArray(VAO_ceiling);
+                glBindVertexArray(VAO_ceiling);
 
-            mazeShader.setMat4("model", glm::mat4(1.0f));
+                mazeShader.setMat4("model", glm::mat4(1.0f));
 
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
 
             // RENDER WALLS
             glActiveTexture(GL_TEXTURE0);
