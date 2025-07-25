@@ -58,6 +58,7 @@ public:
     // --- VARIABILI PER LA FASE DI RABBIA ---
     bool isEnraged;
     const float MAX_HEALTH = 5000.0f;
+    float currentMaxHealth; // La salute massima corrente
 
     // Gestione della macchina a stati
     State currentState;
@@ -88,12 +89,13 @@ public:
         mazeLayout(maze),
         orientation(0.0f),
         speed(2.9f),
-        health(MAX_HEALTH), // Usa la costante
+        health(MAX_HEALTH),
+        currentMaxHealth(MAX_HEALTH), // Inizializza la nuova variabile
         collisionRadius(0.45f),
         currentState(State::IDLE),
         stateTimer(0.0f),
         didDealDamage(false),
-        isEnraged(false), // Parte non arrabbiato
+        isEnraged(false),
         pathReevaluationTimer(0.0f),
         currentPathIndex(0),
         idleTimer(0.0f)
@@ -133,11 +135,16 @@ public:
         if (currentState == State::DEATH || currentState == State::FINISHED) return;
         health -= damage;
 
-        // --- ATTIVA LA RABBIA ---
+        // --- ATTIVA LA RABBIA E RADDOPPIA LA SALUTE ---
         if (!isEnraged && health <= MAX_HEALTH / 2.0f) {
             isEnraged = true;
             speed *= 1.4f; // Aumenta la velocità del 40%
-            std::cout << "Il Minotauro si infuria!" << std::endl;
+
+            // --- MODIFICA CHIAVE ---
+            currentMaxHealth *= 2.0f;   // Raddoppia la salute massima
+            health = currentMaxHealth;      // Ripristina la salute al nuovo massimo
+
+            std::cout << "Il Minotauro si infuria! La sua salute massima e' raddoppiata!" << std::endl;
         }
 
         if (health <= 0) {
@@ -151,8 +158,9 @@ public:
 
     void Reset() {
         health = MAX_HEALTH;
-        isEnraged = false; // Resetta lo stato di rabbia
-        speed = 2.9f;      // Resetta la velocità
+        currentMaxHealth = MAX_HEALTH; // Resetta la nuova variabile
+        isEnraged = false;
+        speed = 2.9f;
         position = spawnPosition;
         currentState = State::IDLE;
         idleTimer = 0.0f;
@@ -371,7 +379,37 @@ private:
         }
     }
 
-    CollisionResult CheckMazeCollision(glm::vec3 checkPos) { /* ... invariato ... */ }
+    CollisionResult CheckMazeCollision(glm::vec3 checkPos) {
+        CollisionResult result;
+        int gridX = static_cast<int>(floor(checkPos.x / CELL_SIZE));
+        int gridZ = static_cast<int>(floor(checkPos.z / CELL_SIZE));
+
+        for (int z = gridZ - 1; z <= gridZ + 1; ++z) {
+            for (int x = gridX - 1; x <= gridX + 1; ++x) {
+                if (x >= 0 && x < mazeLayout[0].size() && z >= 0 && z < mazeLayout.size() && mazeLayout[z][x].wall) {
+                    float wallX = (x * CELL_SIZE) + (CELL_SIZE / 2.0f);
+                    float wallZ = (z * CELL_SIZE) + (CELL_SIZE / 2.0f);
+
+                    float closestX = std::max(wallX - CELL_SIZE / 2.0f, std::min(checkPos.x, wallX + CELL_SIZE / 2.0f));
+                    float closestZ = std::max(wallZ - CELL_SIZE / 2.0f, std::min(checkPos.z, wallZ + CELL_SIZE / 2.0f));
+
+                    if (glm::distance(glm::vec2(closestX, closestZ), glm::vec2(checkPos.x, checkPos.z)) < collisionRadius) {
+                        result.hasCollided = true;
+                        glm::vec2 diff = glm::vec2(checkPos.x, checkPos.z) - glm::vec2(closestX, closestZ);
+                        if (glm::length(diff) > 0.001f) {
+                            result.collisionNormal = glm::vec3(glm::normalize(diff).x, 0.0f, glm::normalize(diff).y);
+                        }
+                        else {
+                            // Se siamo perfettamente al centro, scegliamo una direzione a caso
+                            result.collisionNormal = glm::vec3(1.0, 0.0, 0.0);
+                        }
+                        return result;
+                    }
+                }
+            }
+        }
+        return result;
+    }
 };
 
 #endif

@@ -1252,7 +1252,12 @@ int main() {
 
 
 
-                    int minoFilledWidth = static_cast<int>((minotaur.health / 100.0f) * minoBarWidth);
+                    //int minoFilledWidth = static_cast<int>((minotaur.health / 100.0f) * minoBarWidth);
+
+                    // *** CORREZIONE: Usa MAX_HEALTH invece di 100 ***
+                    float healthPercentage = minotaur.health / minotaur.currentMaxHealth;
+                    int minoFilledWidth = static_cast<int>(healthPercentage * minoBarWidth);
+
 
 
 
@@ -1270,9 +1275,24 @@ int main() {
 
                     minoHealthBar += "]";
 
+                    // *** NUOVO: Colore diverso per rage mode ***
+                    glm::vec3 healthBarColor = minotaur.isEnraged ?
+                        glm::vec3(1.0, 0.0, 0.0) :  // Rosso intenso in rage
+                        glm::vec3(1.0, 0.3, 0.3);   // Rosso normale
+
+                    // *** NUOVO: Aggiungi indicatore rage mode ***
+                    if (minotaur.isEnraged) {
+                        minoHealthBar += " [RABBIA]";
+                    }
 
 
-                    RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
+
+                    RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, healthBarColor);
+
+                    // *** NUOVO: Testo aggiuntivo per rage mode ***
+                    if (minotaur.isEnraged) {
+                        RenderText("IL MINOTAURO E' INFURIATO!", 800.0f, SCR_HEIGHT - 110.0f, 0.6f, glm::vec3(1.0, 0.0, 0.0));
+                    }
 
                 }
 
@@ -2390,19 +2410,6 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
                 model = glm::scale(model, glm::vec3(0.8f));
                 statueMatrices.push_back(model);
             }
-        }
-    }
-
-    // --- NUOVA LOGICA: SCEGLI PUNTI CASUALI PER IL JUMP SCARE ---
-    if (!emptySpaces.empty()) {
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(emptySpaces.begin(), emptySpaces.end(), g); // Mescola tutte le posizioni valide
-
-        // Scegliamo le prime N posizioni mescolate (es. 5 punti di spawn)
-        int numJumpScares = std::min((int)emptySpaces.size(), 5);
-        for (int i = 0; i < numJumpScares; ++i) {
-            jumpScareLocations.push_back(emptySpaces[i]);
         }
     }
 
