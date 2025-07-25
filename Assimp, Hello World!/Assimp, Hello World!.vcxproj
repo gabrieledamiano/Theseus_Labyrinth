@@ -206,6 +206,7 @@
     <ClInclude Include="config.h" />
     <ClInclude Include="dungeon_room.h" />
     <ClInclude Include="enemy.h" />
+    <ClInclude Include="jumpscare.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="minotaur.h" />
     <ClInclude Include="model.h" />

@@ -164,5 +164,8 @@
     <ClInclude Include="wallSconce.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="jumpscare.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

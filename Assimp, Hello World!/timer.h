@@ -4,45 +4,47 @@
 
 class Timer {
 private:
-    const float m_startTime; // Rinominato da m_duration per chiarezza
-    float m_currentTime;
+    float m_startTime;      // Durata originale o ultima impostata
+    float m_currentTime;    // Tempo rimanente
 
 public:
-    // Il costruttore imposta la durata iniziale del timer
-    Timer(float startTime_seconds = 1.0f) : m_startTime(startTime_seconds) {
-        m_currentTime = 0.0f; // Il timer parte inattivo
+    Timer(float startTime_seconds = 1.0f)
+        : m_startTime(startTime_seconds), m_currentTime(0.0f) {
     }
 
-    // Fa partire il conto alla rovescia
+    // Fa partire il conto alla rovescia con la durata predefinita
     void Start() {
         m_currentTime = m_startTime;
     }
 
-    // Resetta e ferma il timer
+    // --- NUOVA FUNZIONE ---
+    // Fa partire il conto alla rovescia con una NUOVA durata personalizzata
+    void Start(float new_duration) {
+        m_startTime = new_duration; // Aggiorna la durata di riferimento
+        m_currentTime = new_duration;
+    }
+
     void Stop() {
         m_currentTime = 0.0f;
     }
 
-    // Aggiorna il timer. Va chiamata ad ogni frame.
     void Update(float deltaTime) {
         if (m_currentTime > 0.0f) {
             m_currentTime -= deltaTime;
+            if (m_currentTime < 0.0f) m_currentTime = 0.0f;
         }
     }
 
-    // Ritorna 'true' se il timer è ancora in corso
     bool IsActive() const {
         return m_currentTime > 0.0f;
     }
-
-    // --- NUOVE FUNZIONI AGGIUNTE ---
 
     // Ritorna il tempo rimanente
     float GetTime() const {
         return m_currentTime;
     }
 
-    // Ritorna la durata iniziale
+    // Ritorna la durata con cui è stato avviato l'ultimo timer
     float GetStartTime() const {
         return m_startTime;
     }

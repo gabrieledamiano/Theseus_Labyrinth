@@ -17,7 +17,7 @@
 
 
 #include <iostream>
-    
+
 #include <vector>
 
 #include <stack>
@@ -78,6 +78,7 @@
 #include "dungeon_room.h"
 
 #include "enemy.h"
+#include "jumpscare.h"
 
 
 
@@ -93,7 +94,7 @@ struct GameContext {
 
     Camera* camera;
 
-    std::vector<DungeonRoom>* dungeonRooms; 
+    std::vector<DungeonRoom>* dungeonRooms;
 
 };
 
@@ -129,6 +130,13 @@ enum class GameState {
 
 GameState currentState = GameState::MENU;
 
+// --- VARIABILI PER JUMP SCARE ---
+Model* harpyModel_ptr = nullptr;
+JumpScare* harpyJumpScare = nullptr;
+
+Timer jumpScareCooldown(15.0f); // Un jump scare può avvenire al massimo ogni 15 secondi
+std::vector<glm::vec3> jumpScareLocations;
+
 
 
 //--- Variabili Globali Audio ---
@@ -144,6 +152,8 @@ ISoundSource* minotaurHitSound = SoundEngine->addSoundSourceFromFile("resources/
 ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resources/death.mp3");
 
 ISoundSource* playerHurtSound = SoundEngine->addSoundSourceFromFile("resources/hurt.mp3");
+ISoundSource* scareSound = SoundEngine->addSoundSourceFromFile("resources/scare.mp3");
+
 
 
 
@@ -157,11 +167,11 @@ float playerAttackDamage = 50.0f;
 
 
 
-Timer victoryMessageTimer(5.0f); 
+Timer victoryMessageTimer(5.0f);
 
-Timer damageEffectTimer(0.5f); 
+Timer damageEffectTimer(0.5f);
 
-Timer cameraShakeTimer(0.3f); 
+Timer cameraShakeTimer(0.3f);
 unsigned int damageOverlayTexture;
 
 
@@ -221,6 +231,9 @@ bool showFPS = false;
 int frameCount = 0;
 float timeSinceLastUpdate = 0.0f;
 int fps = 0;
+
+
+
 
 
 // Muro = 1, Minotauro = 2, Uscita = 3, Casse = 4
@@ -304,7 +317,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
 
-    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } 
+    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 
 };
 
@@ -443,7 +456,7 @@ bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::ve
 
 
 
-// In main.cpp, prima della funzione main()
+
 
 // Controlla se un cubo (definito da centro e dimensione) è nel frustum della camera
 bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::vec3& size) {
@@ -565,12 +578,20 @@ int main() {
     //Modello della fiaccola
     wallSconceModel_ptr = new Model("resources/torch/torch.glb");
 
+    harpyModel_ptr = new Model("resources/arpia/arpia.glb");
+
+
+    // --- NUOVO: Inizializza l'oggetto JumpScare ---
+    if (harpyModel_ptr) {
+        harpyJumpScare = new JumpScare(*harpyModel_ptr);
+    }
+
     // struttura per i dati della torcia
     struct TorchData {
         glm::vec3 position;
         float     rotation;
         float     scale;
-        glm::vec3 flameOffset; 
+        glm::vec3 flameOffset;
     };
 
     // lista di torce
@@ -598,7 +619,7 @@ int main() {
     if (wallSconceModel_ptr) {
         for (const auto& data : torchPositions) {
             wallSconces.emplace_back(*wallSconceModel_ptr, data.position, data.rotation, data.scale, data.flameOffset);
-            fireEmitters.emplace_back(500); 
+            fireEmitters.emplace_back(500);
         }
     }
 
@@ -829,6 +850,33 @@ int main() {
 
                 }
 
+                // AGGIUNGI QUESTA RIGA:
+                if (harpyJumpScare) {
+                    harpyJumpScare->Update(deltaTime);
+                }
+
+                //-- - LOGICA JUMP SCARE-- -
+                jumpScareCooldown.Update(deltaTime);
+                if (harpyJumpScare && !jumpScareCooldown.IsActive() && harpyJumpScare->currentState == JumpScare::State::INACTIVE) {
+                    // Possiamo controllare più spesso, perché molti tentativi saranno bloccati dai muri.
+                    if ((rand() % 200) == 0) {
+                        // 1. Calcola un punto direttamente di fronte alla telecamera
+                        const float jumpScareDistance = 8.0f; // Distanza a cui appare l'arpia. Puoi regolarla.
+                        glm::vec3 spawnPos = camera.Position + camera.Front * jumpScareDistance;
+
+                        // 2. Regola l'altezza per essere al livello degli occhi del giocatore
+                        spawnPos.y = camera.Position.y;
+
+                        // 3. CONTROLLO CRUCIALE: Attiva il jumpscare solo se il punto di spawn NON è dentro un muro.
+                        if (!checkWallCollision(spawnPos)) {
+                            std::cout << "Jumpscare attivato con successo di fronte al giocatore!" << std::endl;
+                            harpyJumpScare->Trigger(spawnPos);
+                            if (scareSound) SoundEngine->play2D(scareSound, false);
+                            jumpScareCooldown.Start();
+                        }
+                    }
+                }
+
 
                 victoryMessageTimer.Update(deltaTime);
 
@@ -853,11 +901,16 @@ int main() {
                 }
 
                 unlockMessageTimer.Update(deltaTime);
-                damageEffectTimer.Update(deltaTime); 
-                cameraShakeTimer.Update(deltaTime); 
+                damageEffectTimer.Update(deltaTime);
+                cameraShakeTimer.Update(deltaTime);
 
             }
 
+            // OSCURAMENTO AMBIENTE DURANTE JUMP SCARE
+            glm::vec3 currentAmbient = spotLightAmbient;
+            if (harpyJumpScare && harpyJumpScare->currentState != JumpScare::State::INACTIVE) {
+                currentAmbient *= 0.4f; // Riduci la luce ambientale all'20%
+            }
 
 
             mazeShader.use();
@@ -986,8 +1039,17 @@ int main() {
                     glBindVertexArray(0);
                 }
             }
-            
 
+
+            // -- - DISEGNA L'ARPIA ---
+            if (harpyJumpScare) {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glDepthMask(GL_FALSE);  // Disabilita scrittura depth buffer
+                harpyJumpScare->Draw(modelShader, camera, projection, view);
+                glDepthMask(GL_TRUE);
+                glDisable(GL_BLEND);
+            }
 
 
             if (minotaur.currentState != Minotaur::State::FINISHED) {
@@ -1017,7 +1079,7 @@ int main() {
 
                 // Disegna la cassa della stanza
 
-                modelShader.use(); 
+                modelShader.use();
 
                 modelShader.setMat4("projection", projection);
 
@@ -1033,7 +1095,7 @@ int main() {
 
                 // Disegna i nemici della stanza
 
-                modelShader.use(); 
+                modelShader.use();
 
                 modelShader.setMat4("projection", projection);
 
@@ -1087,7 +1149,7 @@ int main() {
                 hintShader->setMat4("projection", projection);
                 hintShader->setMat4("view", view);
                 hintShader->setMat4("model", glm::mat4(1.0f));
- 
+
                 glLineWidth(3.0f);
 
                 glBindVertexArray(hintVAO);
@@ -1120,7 +1182,7 @@ int main() {
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                menuShader.use(); 
+                menuShader.use();
 
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, damageOverlayTexture);
@@ -1567,7 +1629,7 @@ void PlayerTakeDamage(float damage) {
         if (playerHealth < 0) playerHealth = 0;
 
         damageEffectTimer.Start();
-        cameraShakeTimer.Start(); 
+        cameraShakeTimer.Start();
         if (playerHurtSound) SoundEngine->play2D(playerHurtSound, false);
 
         std::cout << "Player health: " << playerHealth << std::endl;
@@ -1635,7 +1697,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 
-        
+
 
         for (auto& room : *context->dungeonRooms) {
 
@@ -1691,7 +1753,7 @@ void ResetGame(Camera& cam, Minotaur& minotaur) {
 
     playerStamina = PLAYER_MAX_STAMINA;
 
-    playerAttackDamage = 50.0f; 
+    playerAttackDamage = 50.0f;
 
 
 
@@ -1917,8 +1979,6 @@ void processInput(GLFWwindow* window) {
     Minotaur& minotaur = *context->minotaur;
 
     Camera& camera = *context->camera;
-
-    //std::vector<Chest>& chests = *context->chests;
 
     std::vector<DungeonRoom>& rooms = *context->dungeonRooms;
 
@@ -2289,98 +2349,66 @@ void processInput(GLFWwindow* window) {
 
 
 void loadLevelData(glm::vec3& minotaurSpawnPos) {
+    // Pulisce i dati delle partite precedenti
+    dungeonRooms.clear();
+    statues.clear();
+    statueMatrices.clear();
+    jumpScareLocations.clear();
 
-    // Pulisci le casse dalla partita precedente
-
-    if (chestModel_ptr) {
-
-        chests.clear();
-
-    }
-
-
+    // Vettore temporaneo per tutte le possibili posizioni vuote
+    std::vector<glm::vec3> emptySpaces;
 
     minotaurSpawnPos = glm::vec3(-1.0f);
 
     for (int y = 0; y < MAZE_HEIGHT; ++y) {
-
         for (int x = 0; x < MAZE_WIDTH; ++x) {
-
             maze[y][x].wall = (initial_maze_map[y][x] == 1);
 
-
-
             float worldX = x * CELL_SIZE + CELL_SIZE / 2.0f;
-
             float worldZ = y * CELL_SIZE + CELL_SIZE / 2.0f;
 
-
-
-            if (initial_maze_map[y][x] == 2) {
-
+            if (initial_maze_map[y][x] == 0) {
+                // Se la cella è vuota, la aggiungiamo come possibile punto di spawn
+                emptySpaces.push_back(glm::vec3(worldX, 1.5f, worldZ));
+            }
+            else if (initial_maze_map[y][x] == 2) {
                 minotaurSpawnPos = glm::vec3(worldX, 0.0f, worldZ);
-
             }
-
             else if (initial_maze_map[y][x] == 4 && chestModel_ptr && enemyModel_ptr) {
-
-                // Se troviamo una cassa (4), la creiamo e la aggiungiamo al vettore
-
-                //chests.emplace_back(*chestModel_ptr, glm::vec3(worldX, 0.5f, worldZ));
-
-                // Definisce i confini della stanza (es. un'area 5x5 intorno al marcatore)
-
-                glm::vec4 bounds = {
-
-                    (x - 2) * CELL_SIZE, (x + 3) * CELL_SIZE,
-
-                    (y - 2) * CELL_SIZE, (y + 3) * CELL_SIZE
-
-                };
-
-
-
-                // Crea la cassa al centro della stanza (altezza sistemata)
-
+                glm::vec4 bounds = { (x - 2) * CELL_SIZE, (x + 3) * CELL_SIZE, (y - 2) * CELL_SIZE, (y + 3) * CELL_SIZE };
                 Chest chest(*chestModel_ptr, glm::vec3(worldX, 0.5f, worldZ));
-
-
-
-                // Crea i nemici guardiani ai lati della cassa
-
                 std::vector<Enemy> enemies;
-
                 enemies.emplace_back(*enemyModel_ptr, glm::vec3(worldX - 1.5f, 0.0f, worldZ - 1.5f), bounds);
-
                 enemies.emplace_back(*enemyModel_ptr, glm::vec3(worldX + 1.5f, 0.0f, worldZ + 1.5f), bounds);
-
-
-
                 dungeonRooms.emplace_back(chest, std::move(enemies), bounds);
-
             }
-            // --- NUOVA LOGICA PER LE STATUE ---
             else if (initial_maze_map[y][x] == 5 && statueModel_ptr) {
                 statues.push_back(*statueModel_ptr);
-
                 glm::mat4 model = glm::mat4(1.0f);
                 model = glm::translate(model, glm::vec3(worldX, 0.9f, worldZ));
                 model = glm::rotate(model, glm::radians(270.0f * (rand() % 4)), glm::vec3(0.0f, 1.0f, 0.0f));
-                model = glm::scale(model, glm::vec3(0.8f)); 
-
+                model = glm::scale(model, glm::vec3(0.8f));
                 statueMatrices.push_back(model);
             }
-
         }
+    }
 
+    // --- NUOVA LOGICA: SCEGLI PUNTI CASUALI PER IL JUMP SCARE ---
+    if (!emptySpaces.empty()) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(emptySpaces.begin(), emptySpaces.end(), g); // Mescola tutte le posizioni valide
+
+        // Scegliamo le prime N posizioni mescolate (es. 5 punti di spawn)
+        int numJumpScares = std::min((int)emptySpaces.size(), 5);
+        for (int i = 0; i < numJumpScares; ++i) {
+            jumpScareLocations.push_back(emptySpaces[i]);
+        }
     }
 
     if (minotaurSpawnPos.x < 0.0f) {
-
         minotaurSpawnPos = glm::vec3(10.0f, 0.0f, 10.0f);
-
     }
-
 }
 
 
@@ -2687,256 +2715,6 @@ void setupMenuVAO() {
 
 
 
-//void setupMazeGeometryVAOs() {
-//
-//    float cubeVertices[] = {
-//
-//        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
-//
-//        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-//
-//        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-//
-//        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-//
-//        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-//
-//        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-//
-//        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
-//
-//         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-//
-//         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
-//
-//        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-//
-//         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-//
-//         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-//
-//         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-//
-//        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-//
-//        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
-//
-//        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-//
-//         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-//
-//         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-//
-//         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-//
-//        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
-//
-//        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f
-//
-//    };
-//
-//    glGenBuffers(1, &VBO_cube_lit);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-//
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-//
-//
-//
-//    glGenVertexArrays(1, &VAO_walls);
-//
-//    glBindVertexArray(VAO_walls);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-//
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-//
-//    glEnableVertexAttribArray(0);
-//
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(1);
-//
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(2);
-//
-//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(3);
-//
-//    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(4);
-//
-//
-//
-//    float mazeW = (float)MAZE_WIDTH * CELL_SIZE;
-//
-//    float mazeD = (float)MAZE_HEIGHT * CELL_SIZE;
-//
-//    float textureRepeatX = mazeW / CELL_SIZE;
-//
-//    float textureRepeatZ = mazeD / CELL_SIZE;
-//
-//
-//
-//    float floorVertices[] = {
-//
-//        mazeW, 0.0f, mazeD,    0.0f, 1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-//
-//        mazeW, 0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-//
-//        0.0f,  0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-//
-//        0.0f,  0.0f, mazeD,    0.0f, 1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
-//
-//    };
-//
-//    unsigned int planeIndices[] = { 0, 1, 3, 1, 2, 3 };
-//
-//    unsigned int VBO_floor, EBO_floor;
-//
-//    glGenVertexArrays(1, &VAO_floor);
-//
-//    glGenBuffers(1, &VBO_floor);
-//
-//    glGenBuffers(1, &EBO_floor);
-//
-//    glBindVertexArray(VAO_floor);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_floor);
-//
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
-//
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_floor);
-//
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
-//
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-//
-//    glEnableVertexAttribArray(0);
-//
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(1);
-//
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(2);
-//
-//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(3);
-//
-//    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(4);
-//
-//
-//
-//    float ceilingVertices[] = {
-//
-//        mazeW, WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-//
-//        0.0f,  WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-//
-//        0.0f,  WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-//
-//        mazeW, WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f
-//
-//    };
-//
-//    unsigned int ceilingIndices[] = { 0, 1, 3, 1, 2, 3 };
-//
-//    unsigned int VBO_ceiling, EBO_ceiling;
-//
-//    glGenVertexArrays(1, &VAO_ceiling);
-//
-//    glGenBuffers(1, &VBO_ceiling);
-//
-//    glGenBuffers(1, &EBO_ceiling);
-//
-//    glBindVertexArray(VAO_ceiling);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_ceiling);
-//
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(ceilingVertices), ceilingVertices, GL_STATIC_DRAW);
-//
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_ceiling);
-//
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ceilingIndices), ceilingIndices, GL_STATIC_DRAW);
-//
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-//
-//    glEnableVertexAttribArray(0);
-//
-//    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(1);
-//
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(2);
-//
-//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(3);
-//
-//    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
-//
-//    glEnableVertexAttribArray(4);
-//
-//
-//
-//    glGenVertexArrays(1, &VAO_lamp);
-//
-//    glBindVertexArray(VAO_lamp);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-//
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
-//
-//    glEnableVertexAttribArray(0);
-//
-//
-//
-//    glBindVertexArray(0);
-//
-//}
-
-// Rimuovi la vecchia setupMazeGeometryVAOs() e inserisci questa al suo posto
-
 void setupMazeGeometry() {
 
     // --- PARTE 1: SETUP PAVIMENTO E SOFFITTO  ---
@@ -3109,8 +2887,4 @@ void setupMazeGeometry() {
             mazeChunks.push_back(chunk);
         }
     }
-
-    // Non abbiamo più bisogno di questi VAO/VBO globali per i muri
-    // glDeleteVertexArrays(1, &VAO_walls);
-    // glDeleteBuffers(1, &VBO_cube_lit);
 }
