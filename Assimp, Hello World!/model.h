@@ -21,13 +21,13 @@
 #include "shader_m.h"
 #include "animator.h"
 #include "bone.h"
-#include "assimp_glm_helpers.h" // Assumo che tu abbia questo helper
+#include "assimp_glm_helpers.h" 
 
 using namespace std;
 
 // Dichiarazioni delle funzioni helper
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
-unsigned int TextureFromMemory(const aiTexture* aiTex); // <-- NUOVA FUNZIONE HELPER
+unsigned int TextureFromMemory(const aiTexture* aiTex); 
 
 class Model
 {
@@ -39,8 +39,7 @@ public:
     std::map<string, Animation*> m_Animations;
 
 private:
-    // <-- MODIFICA 1: Aggiunto un puntatore alla scena di Assimp -->
-    // Serve per accedere alle texture incorporate da qualsiasi punto della classe.
+   
     const aiScene* m_scene;
 
     // Dati per l'animazione
@@ -216,7 +215,7 @@ private:
         }
     }
 
-    // <-- MODIFICA 2: Aggiornata la funzione per caricare le texture -->
+    
     vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName)
     {
         vector<Texture> textures;
@@ -264,7 +263,7 @@ private:
     }
 };
 
-// <-- MODIFICA 3: Aggiunta la definizione della funzione TextureFromMemory -->
+
 inline unsigned int TextureFromMemory(const aiTexture* aiTex) {
     unsigned int textureID;
     glGenTextures(1, &textureID);

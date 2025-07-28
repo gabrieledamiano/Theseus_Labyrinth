@@ -8,10 +8,10 @@ public:
     glm::vec3 position;
     float rotationAngle;
     float scale;
-    glm::vec3 flameOffset; // <-- AGGIUNGI QUESTA RIGA
+    glm::vec3 flameOffset; 
 
     WallSconce(Model& model, glm::vec3 pos, float rotation, float scl, glm::vec3 offset)
-        : model(model), position(pos), rotationAngle(rotation), scale(scl), flameOffset(offset) {} // <-- AGGIORNA IL COSTRUTTORE
+        : model(model), position(pos), rotationAngle(rotation), scale(scl), flameOffset(offset) {} 
 
     void Draw(Shader& shader) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);

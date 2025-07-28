@@ -90,7 +90,7 @@ public:
         orientation(0.0f),
         speed(2.9f),
         health(MAX_HEALTH),
-        currentMaxHealth(MAX_HEALTH), // Inizializza la nuova variabile
+        currentMaxHealth(MAX_HEALTH), 
         collisionRadius(0.45f),
         currentState(State::IDLE),
         stateTimer(0.0f),
@@ -140,7 +140,7 @@ public:
             isEnraged = true;
             speed *= 1.4f; // Aumenta la velocità del 40%
 
-            // --- MODIFICA CHIAVE ---
+            
             currentMaxHealth *= 2.0f;   // Raddoppia la salute massima
             health = currentMaxHealth;      // Ripristina la salute al nuovo massimo
 
@@ -158,7 +158,7 @@ public:
 
     void Reset() {
         health = MAX_HEALTH;
-        currentMaxHealth = MAX_HEALTH; // Resetta la nuova variabile
+        currentMaxHealth = MAX_HEALTH; 
         isEnraged = false;
         speed = 2.9f;
         position = spawnPosition;

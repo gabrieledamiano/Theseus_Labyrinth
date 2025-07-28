@@ -18,7 +18,7 @@ public:
     bool firstActivation;
 
 private:
-    // NUOVA VARIABILE: Memorizza le posizioni di spawn originali dei nemici
+    // Memorizza le posizioni di spawn originali dei nemici
     std::vector<glm::vec3> m_enemySpawnPositions;
 
 public:
@@ -64,7 +64,7 @@ public:
         }
     }
 
-    // --- FUNZIONE RESET CORRETTA ---
+    
     void Reset() {
         state = RoomState::IDLE;
         firstActivation = true;

@@ -99,7 +99,6 @@ struct GameContext {
 };
 
 
-// In main.cpp, dopo la struct GameContext
 
 struct MazeChunk {
     unsigned int VAO, VBO;
@@ -108,7 +107,7 @@ struct MazeChunk {
     glm::vec3 size;
 };
 
-std::vector<MazeChunk> mazeChunks; // Un vettore globale per i nostri chunk
+std::vector<MazeChunk> mazeChunks; 
 
 
 
@@ -198,10 +197,10 @@ std::vector<WallSconce> wallSconces;
 Model* wallSconceModel_ptr = nullptr;
 
 
-// --- NUOVE VARIABILI PER LE STATUE ---
+// --- VARIABILI PER LE STATUE ---
 Model* statueModel_ptr = nullptr;
-std::vector<Model> statues; // Un semplice vettore di modelli
-std::vector<glm::mat4> statueMatrices; // E le loro matrici per la posizione/rotazione
+std::vector<Model> statues; 
+std::vector<glm::mat4> statueMatrices;
 
 //Variabili per il sistema particellare
 std::vector<ParticleEmitter> fireEmitters;
@@ -211,11 +210,11 @@ const int MAX_POINT_LIGHTS = 10;
 glm::vec3 pointLightPositions[MAX_POINT_LIGHTS];
 int activePointLights = 0;
 
-// Aggiungila vicino alle altre costanti di gioco
-const float PARTICLE_ACTIVATION_RADIUS = 20.0f; // Raggio in unità di gioco. Puoi regolarlo.
+
+const float PARTICLE_ACTIVATION_RADIUS = 20.0f; // Raggio in unità di gioco
 
 
-// --- STAMINA: Nuove variabili ---
+// --- Variabili Stamina ---
 
 float playerStamina = 100.0f;
 
@@ -435,9 +434,7 @@ bool checkWallCollision(glm::vec3 checkPos);
 
 bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur);
 
-bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur); //nuovo
-
-//void setupMazeGeometryVAOs();
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur); 
 
 void setupMazeGeometry();
 
@@ -581,7 +578,7 @@ int main() {
     harpyModel_ptr = new Model("resources/arpia/arpia.glb");
 
 
-    // --- NUOVO: Inizializza l'oggetto JumpScare ---
+    
     if (harpyModel_ptr) {
         harpyJumpScare = new JumpScare(*harpyModel_ptr);
     }
@@ -683,8 +680,8 @@ int main() {
     setupMenuVAO();
 
 
-    setupMazeGeometry(); // <-- NUOVA CHIAMATA
-    //setupMazeGeometryVAOs();
+    setupMazeGeometry();
+
 
 
 
@@ -773,7 +770,7 @@ int main() {
 
         glm::mat4 view = camera.GetViewMatrix();
 
-        // --- NUOVO: AGGIORNA IL FRUSTUM AD OGNI FRAME ---
+        // --- AGGIORNA IL FRUSTUM AD OGNI FRAME ---
         camera.UpdateFrustum(view, projection);
 
 
@@ -793,7 +790,7 @@ int main() {
             float offsetX = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
             float offsetY = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
             glm::mat4 shakeTransform = glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, offsetY, 0.0f) * shakeAmount);
-            view = shakeTransform * view; // Applica il tremore alla matrice di vista
+            view = shakeTransform * view; // Tremore alla matrice di vista
         }
 
 
@@ -849,8 +846,6 @@ int main() {
                     }
 
                 }
-
-                // AGGIUNGI QUESTA RIGA:
                 if (harpyJumpScare) {
                     harpyJumpScare->Update(deltaTime);
                 }
@@ -861,7 +856,7 @@ int main() {
                     // Possiamo controllare più spesso, perché molti tentativi saranno bloccati dai muri.
                     if ((rand() % 200) == 0) {
                         // 1. Calcola un punto direttamente di fronte alla telecamera
-                        const float jumpScareDistance = 8.0f; // Distanza a cui appare l'arpia. Puoi regolarla.
+                        const float jumpScareDistance = 8.0f; // Distanza a cui appare l'arpia.
                         glm::vec3 spawnPos = camera.Position + camera.Front * jumpScareDistance;
 
                         // 2. Regola l'altezza per essere al livello degli occhi del giocatore
@@ -891,7 +886,7 @@ int main() {
 
                     // Aggiorna il sistema di particelle se il giocatore è abbastanza vicino
                     if (distanceToSconce < PARTICLE_ACTIVATION_RADIUS) {
-                        // Calcola la posizione della fiamma (come facevi prima)
+                        // Calcola la posizione della fiamma 
                         glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(sconce.rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
                         glm::vec3 rotatedOffset = glm::vec3(rotationMatrix * glm::vec4(sconce.flameOffset, 1.0f));
                         glm::vec3 firePosition = sconce.position + rotatedOffset;
@@ -909,7 +904,7 @@ int main() {
             // OSCURAMENTO AMBIENTE DURANTE JUMP SCARE
             glm::vec3 currentAmbient = spotLightAmbient;
             if (harpyJumpScare && harpyJumpScare->currentState != JumpScare::State::INACTIVE) {
-                currentAmbient *= 0.4f; // Riduci la luce ambientale all'20%
+                currentAmbient *= 0.4f;
             }
 
 
@@ -1004,32 +999,7 @@ int main() {
 
             glBindTexture(GL_TEXTURE_2D, textureNormalWall);
 
-            //glBindVertexArray(VAO_walls);
-
-
-            // // RENDER ARIADNE'S THREAD (HINT) 
-            //if (showHint && !hintPath.empty()) {
-
-            //    glDepthMask(GL_FALSE);
-
-            //    hintShader->use();
-
-            //    hintShader->setMat4("projection", projection);
-
-            //    hintShader->setMat4("view", view);
-
-            //    hintShader->setMat4("model", glm::mat4(1.0f));
-
-            //    glBindVertexArray(hintVAO);
-
-            //    glDrawArrays(GL_LINE_STRIP, 0, hintPath.size());
-
-            //    glBindVertexArray(0);
-
-            //    glDepthMask(GL_TRUE);
-
-            //}
-
+            
             for (const auto& chunk : mazeChunks) {
                 // Controlla la visibilità dell'INTERO CHUNK
                 if (CheckBoxInFrustum(camera, chunk.center, chunk.size)) {
@@ -1137,7 +1107,7 @@ int main() {
 
             glDisable(GL_DEPTH_TEST);
 
-            // RENDER ARIADNE'S THREAD (HINT)
+            // RENDER FILO ARIANNA
             if (showHint && !hintPath.empty()) {
                 // Disabilita temporaneamente il depth test per assicurarsi che il filo sia sempre visibile
                 glDisable(GL_DEPTH_TEST);
@@ -1162,7 +1132,7 @@ int main() {
 
 
 
-            // --- NUOVO: Disegna il contatore FPS ---
+            // --- Disegna il contatore FPS ---
             if (showFPS) {
                 std::string fpsText = "FPS: " + std::to_string(fps);
                 RenderText(fpsText.c_str(), SCR_WIDTH - 120.0f, SCR_HEIGHT - 30.0f, 0.5f, glm::vec3(0.0, 1.0, 0.0f));
@@ -1252,9 +1222,9 @@ int main() {
 
 
 
-                    //int minoFilledWidth = static_cast<int>((minotaur.health / 100.0f) * minoBarWidth);
+                    
 
-                    // *** CORREZIONE: Usa MAX_HEALTH invece di 100 ***
+                    
                     float healthPercentage = minotaur.health / minotaur.currentMaxHealth;
                     int minoFilledWidth = static_cast<int>(healthPercentage * minoBarWidth);
 
@@ -1275,12 +1245,11 @@ int main() {
 
                     minoHealthBar += "]";
 
-                    // *** NUOVO: Colore diverso per rage mode ***
+                    // *** Colore diverso per rage mode ***
                     glm::vec3 healthBarColor = minotaur.isEnraged ?
                         glm::vec3(1.0, 0.0, 0.0) :  // Rosso intenso in rage
                         glm::vec3(1.0, 0.3, 0.3);   // Rosso normale
 
-                    // *** NUOVO: Aggiungi indicatore rage mode ***
                     if (minotaur.isEnraged) {
                         minoHealthBar += " [RABBIA]";
                     }
@@ -1289,7 +1258,7 @@ int main() {
 
                     RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, healthBarColor);
 
-                    // *** NUOVO: Testo aggiuntivo per rage mode ***
+                    
                     if (minotaur.isEnraged) {
                         RenderText("IL MINOTAURO E' INFURIATO!", 800.0f, SCR_HEIGHT - 110.0f, 0.6f, glm::vec3(1.0, 0.0, 0.0));
                     }
@@ -1540,7 +1509,7 @@ int main() {
 
     delete hintShader;
 
-    //glDeleteVertexArrays(1, &VAO_walls);
+    
     for (auto& chunk : mazeChunks) {
         glDeleteVertexArrays(1, &chunk.VAO);
         glDeleteBuffers(1, &chunk.VBO);
@@ -2180,7 +2149,7 @@ void processInput(GLFWwindow* window) {
 
         }
 
-        // --- NUOVA LOGICA PER IL TASTO F ---
+       
         static bool f_key_pressed = false;
         if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !f_key_pressed) {
             f_key_pressed = true;
@@ -2240,8 +2209,6 @@ void processInput(GLFWwindow* window) {
 
         glm::vec3 originalPosition = camera.Position;
 
-        // float moveSpeed = 3.5f; // Rimossa la velocità fissa
-
         glm::vec3 desiredMovement(0.0f);
 
 
@@ -2268,7 +2235,7 @@ void processInput(GLFWwindow* window) {
 
 
 
-        // La tua logica di collisione e movimento rimane invariata
+        // La logica di collisione e movimento rimane invariata
 
         if (glm::length(desiredMovement) > 0.0f) {
 

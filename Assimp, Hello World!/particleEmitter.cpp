@@ -1,6 +1,6 @@
 #include "ParticleEmitter.h"
 #include <glad/glad.h>
-#include <algorithm> // Per std::max
+#include <algorithm> 
 
 ParticleEmitter::ParticleEmitter(unsigned int amount)
     : amount(amount), particleShader("particle.vs", "particle.fs") {

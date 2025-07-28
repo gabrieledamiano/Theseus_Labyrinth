@@ -6,7 +6,7 @@
 #include <map>
 #include <glm/glm.hpp>
 #include <assimp/scene.h>
-#include "bone.h" // Ora include la definizione di BoneInfo
+#include "bone.h"
 
 // Forward declaration per rompere la dipendenza circolare con model.h
 class Model;

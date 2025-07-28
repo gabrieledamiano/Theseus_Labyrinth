@@ -5,7 +5,7 @@
 Animation::Animation(const aiScene* scene, Model* model)
 {
     assert(scene && scene->mRootNode);
-    if (scene->mNumAnimations == 0) return; // Non fare nulla se non ci sono animazioni
+    if (scene->mNumAnimations == 0) return; 
 
     auto animation = scene->mAnimations[0];
     m_Duration = animation->mDuration;

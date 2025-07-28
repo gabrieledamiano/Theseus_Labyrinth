@@ -14,7 +14,7 @@ const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
-// --- NUOVA STRUCT PER I PIANI DEL FRUSTUM ---
+// --- STRUCT PER I PIANI DEL FRUSTUM ---
 struct FrustumPlane {
     glm::vec3 normal;
     float distance;
@@ -33,7 +33,7 @@ public:
     float MouseSensitivity;
     float Zoom;
 
-    // --- NUOVO MEMBRO PER IL FRUSTUM ---
+    // --- MEMBRO PER IL FRUSTUM ---
     std::vector<FrustumPlane> frustum;
 
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f))
@@ -80,12 +80,12 @@ public:
             Zoom = 45.0f;
     }
 
-    // --- NUOVA FUNZIONE PER ESTRARRE I PIANI DEL FRUSTUM ---
+    // --- FUNZIONE PER ESTRARRE I PIANI DEL FRUSTUM ---
     void UpdateFrustum(const glm::mat4& view, const glm::mat4& projection) {
         frustum.clear();
         glm::mat4 clipMatrix = projection * view;
 
-        // Estrai i 6 piani (destra, sinistra, basso, alto, vicino, lontano)
+        // Estrae i 6 piani (destra, sinistra, basso, alto, vicino, lontano)
         for (int i = 0; i < 2; ++i) {
             // Piano Sinistra e Destra
             FrustumPlane plane;

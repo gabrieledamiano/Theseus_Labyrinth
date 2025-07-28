@@ -21,7 +21,7 @@ public:
     glm::vec3 position;
     bool isOpen;
     bool isLocked;
-    bool isCollected; // Aggiunto flag per raccolta completata
+    bool isCollected; 
     PowerUpType powerUp;
 
     Chest(Model& model, glm::vec3 pos)
@@ -42,7 +42,7 @@ public:
             return false;
         }
 
-        // MODIFICA: Controlla anche isCollected
+        
         if (isCollected) {
             return false;
         }
@@ -64,11 +64,11 @@ public:
     void Reset() {
         isOpen = false;
         isLocked = true;
-        isCollected = false; // Resetta anche isCollected
+        isCollected = false;
     }
 
     void Draw(Shader& shader) {
-        // MODIFICA: Non disegnare se la cassa è stata raccolta
+        // Non disegnare se la cassa è stata raccolta o aperta
         if (isCollected || isOpen) return;
 
         glm::mat4 model = glm::mat4(1.0f);

@@ -13,7 +13,7 @@ void PlayerTakeDamage(float damage);
 
 class Enemy {
 public:
-    // Aggiunto il nuovo stato DORMANT
+    
     enum class State { DORMANT, IDLE, CHASING, ATTACKING, DEATH };
 
     Model& enemyModel;
