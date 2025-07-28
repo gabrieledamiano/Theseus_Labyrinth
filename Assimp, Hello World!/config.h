@@ -25,4 +25,4 @@ const float EXIT_X_MAX = 7.0f * CELL_SIZE;        // Il bordo destro del corrido
 const float CAMERA_HEIGHT = 1.5f;
 const float CAMERA_COLLISION_RADIUS = 0.2f;
 
-#endif // CONFIG_H
+#endif

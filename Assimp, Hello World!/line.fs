@@ -3,6 +3,6 @@ out vec4 FragColor;
 
 void main()
 {
-    // Un colore dorato/giallo, molto visibile
+    // Colore dorato/giallo
     FragColor = vec4(1.0, 0.85, 0.1, 1.0);
 }

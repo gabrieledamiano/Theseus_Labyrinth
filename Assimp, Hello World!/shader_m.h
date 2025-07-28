@@ -43,7 +43,6 @@ public:
             vertexCode = vShaderStream.str();
             fragmentCode = fShaderStream.str();
 
-            // Se è fornito un percorso per lo shader geometrico, leggilo
             if (geometryPath != nullptr)
             {
                 gShaderFile.open(geometryPath);
@@ -58,7 +57,6 @@ public:
             std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << vertexPath << " | " << fragmentPath;
             if (geometryPath != nullptr) std::cerr << " | " << geometryPath;
             std::cerr << std::endl;
-            // Potresti anche voler lanciare un'eccezione o terminare qui se un file shader è critico.
         }
 
         const char* vShaderCode = vertexCode.c_str();

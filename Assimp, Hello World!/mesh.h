@@ -9,7 +9,6 @@
 #include <vector>
 using namespace std;
 
-// Definiamo quante ossa al massimo possono influenzare un singolo vertice
 #define MAX_BONE_INFLUENCE 4
 
 struct Vertex {
@@ -18,7 +17,7 @@ struct Vertex {
     glm::vec2 TexCoords;
     glm::vec3 Tangent;
     glm::vec3 Bitangent;
-    // Dati per le ossa (bones)
+    // Dati per le ossa
     int m_BoneIDs[MAX_BONE_INFLUENCE];
     float m_Weights[MAX_BONE_INFLUENCE];
 };

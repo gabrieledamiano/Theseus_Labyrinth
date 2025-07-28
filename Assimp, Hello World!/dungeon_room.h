@@ -18,7 +18,7 @@ public:
     bool firstActivation;
 
 private:
-    // Memorizza le posizioni di spawn originali dei nemici
+    // Memorizza posizioni di spawn originali dei nemici
     std::vector<glm::vec3> m_enemySpawnPositions;
 
 public:
@@ -70,11 +70,11 @@ public:
         firstActivation = true;
         chest.Reset();
 
-        // Ora usiamo le posizioni salvate per resettare ogni nemico
+        // Uso posizioni salvate per resettare ogni nemico
         for (size_t i = 0; i < enemies.size() && i < m_enemySpawnPositions.size(); ++i) {
             enemies[i].Reset(m_enemySpawnPositions[i]);
         }
     }
 };
 
-#endif // DUNGEON_ROOM_H
+#endif

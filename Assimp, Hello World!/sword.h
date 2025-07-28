@@ -47,14 +47,11 @@ public:
         glm::vec3 swordOffset = glm::vec3(0.3f, -0.2f, 1.0f); // (destra, basso, avanti)
         glm::vec3 swordPosition = camera.Position + (camera.Right * swordOffset.x) + (camera.Up * swordOffset.y) + (camera.Front * swordOffset.z);
 
-        // 2. Costruisci la matrice del modello
+        // 2. Costruisce la matrice del modello
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, swordPosition);
 
         // 3. Applica una rotazione di base per orientare la spada
-        /*model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(-10.0f), glm::vec3(1.0f, 0.0f, 0.0f));*/
-
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         model = glm::rotate(model, glm::radians(-10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         
@@ -65,7 +62,7 @@ public:
         // 5. Se sta attaccando, applica l'animazione di swing
         if (isAttacking) {
             float progress = attackTimer / ATTACK_DURATION;
-            // Usiamo una sinusoide per un movimento fluido di andata e ritorno
+            // Sinusoide per movimento fluido di andata e ritorno
             float swingValue = sin(progress * 3.14159f);
 
             // 1. Applica la rotazione per il fendente

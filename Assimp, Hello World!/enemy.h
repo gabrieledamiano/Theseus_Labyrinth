@@ -8,7 +8,6 @@
 #include "shader_m.h"
 #include "config.h"
 
-// Forward declaration
 void PlayerTakeDamage(float damage);
 
 class Enemy {
@@ -36,7 +35,7 @@ public:
     Enemy(Model& model, glm::vec3 startPos, glm::vec4 bounds)
         : enemyModel(model), position(startPos), spawnPosition(startPos), patrolBounds(bounds),
         health(2000.0f), orientation(0.0f), isAlive(true), collisionRadius(0.6f),
-        currentState(State::DORMANT), // I nemici ora partono in stato dormiente
+        currentState(State::DORMANT), 
         stateTimer(0.0f), didDealDamage(false)
     {
         position.y = 0.2f;
@@ -143,4 +142,4 @@ private:
     }
 };
 
-#endif // ENEMY_H
+#endif

@@ -8,14 +8,13 @@ in vec2 TexCoords;
 uniform sampler2D texture_diffuse1;
 uniform vec3 viewPos;
 
-// --- NUOVO UNIFORM ---
-// Aggiungiamo una variabile per controllare la trasparenza generale. 
+// Aggiungo variabile per controllare  trasparenza generale. 
 // Il valore di default è 1.0 (completamente opaco).
 uniform float alpha = 1.0;
 
 void main()
 {
-    // Illuminazione di base (invariata)
+    // Illuminazione di base
     vec3 lightDir = normalize(vec3(0.5, -1.0, -0.5));
     vec3 norm = normalize(Normal);
     
@@ -28,7 +27,6 @@ void main()
     vec4 texColor = texture(texture_diffuse1, TexCoords);
     vec3 result = (ambient + diffuse) * texColor.rgb;
 
-    // --- MODIFICA ---
-    // Impostiamo il colore finale usando l'alpha della texture moltiplicato per il nostro alpha personalizzato.
+    // Imposto colore finale usando l'alpha della texture moltiplicato per il nostro alpha personalizzato.
     FragColor = vec4(result, texColor.a * alpha);
 }

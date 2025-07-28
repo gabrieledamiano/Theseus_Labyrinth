@@ -14,7 +14,7 @@ const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
-// --- STRUCT PER I PIANI DEL FRUSTUM ---
+// PER I PIANI DEL FRUSTUM 
 struct FrustumPlane {
     glm::vec3 normal;
     float distance;
@@ -33,7 +33,6 @@ public:
     float MouseSensitivity;
     float Zoom;
 
-    // --- MEMBRO PER IL FRUSTUM ---
     std::vector<FrustumPlane> frustum;
 
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f))
@@ -71,7 +70,6 @@ public:
         updateCameraVectors();
     }
 
-    // --- FUNZIONE AGGIUNTA ---
     void ProcessMouseScroll(float yoffset) {
         Zoom -= yoffset;
         if (Zoom < 1.0f)
@@ -80,7 +78,7 @@ public:
             Zoom = 45.0f;
     }
 
-    // --- FUNZIONE PER ESTRARRE I PIANI DEL FRUSTUM ---
+    //  PER ESTRARRE I PIANI DEL FRUSTUM 
     void UpdateFrustum(const glm::mat4& view, const glm::mat4& projection) {
         frustum.clear();
         glm::mat4 clipMatrix = projection * view;

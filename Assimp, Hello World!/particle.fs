@@ -3,7 +3,7 @@ out vec4 FragColor;
 
 void main()
 {
-    // Crea un effetto cerchio sfumato. I punti più lontani dal centro sono più trasparenti.
+    // Effetto cerchio sfumato. I punti più lontani dal centro sono più trasparenti.
     float distance = length(2.0 * gl_PointCoord - 1.0);
     if(distance > 1.0)
         discard; // Scarta i pixel fuori dal cerchio

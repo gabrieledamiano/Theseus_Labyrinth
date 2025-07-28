@@ -1,4 +1,3 @@
-// CHEST.H
 #pragma once
 #ifndef CHEST_H
 #define CHEST_H
@@ -26,7 +25,7 @@ public:
 
     Chest(Model& model, glm::vec3 pos)
         : chestModel(model), position(pos), isOpen(false), isLocked(true),
-        isCollected(false), powerUp(PowerUpType::NONE) // Inizializza isCollected a false
+        isCollected(false), powerUp(PowerUpType::NONE) 
     {
         if ((rand() % 2) == 0) {
             powerUp = PowerUpType::HEALTH_BOOST;
@@ -48,7 +47,7 @@ public:
         }
 
         isOpen = true;
-        isCollected = true; // IMPOSTA A TRUE DOPO L'APERTURA
+        isCollected = true; 
         std::cout << "Cassa aperta! Contiene: " << GetPowerUpName() << std::endl;
         return true;
     }
@@ -80,4 +79,4 @@ public:
     }
 };
 
-#endif // CHEST_H
+#endif 

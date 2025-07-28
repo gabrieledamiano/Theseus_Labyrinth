@@ -25,7 +25,7 @@
 
 using namespace std;
 
-// Dichiarazioni delle funzioni helper
+// Dichiarazioni funzioni helper
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
 unsigned int TextureFromMemory(const aiTexture* aiTex); 
 

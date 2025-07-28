@@ -57,12 +57,12 @@ vec3 CalcSpotLight(SpotLight light, vec3 fragPos, vec3 viewDir, vec2 texCoords)
 
     // Diffuse lighting
     float diff = max(dot(N, lightDir), 0.0);
-    vec3 diffuse = light.diffuse * diff * texture(material.diffuse, texCoords).rgb; // Corretto: light.diffuses -> light.diffuse
+    vec3 diffuse = light.diffuse * diff * texture(material.diffuse, texCoords).rgb; 
 
     // Specular lighting
     vec3 reflectDir = reflect(-lightDir, N);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    vec3 specular = light.specular * spec * texture(material.specular, texCoords).rgb; // Assumendo specular map è sulla unit 1
+    vec3 specular = light.specular * spec * texture(material.specular, texCoords).rgb; 
 
     // Attenuation
     float distance = length(light.position - fragPos);

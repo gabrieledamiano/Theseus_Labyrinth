@@ -18,18 +18,17 @@
 #include "Cell.h"
 #include "config.h"
 
-// Forward declaration della funzione globale definita in main.cpp
 void PlayerTakeDamage(float damage);
 
 class Minotaur {
 private:
-    // Struct per il risultato della collisione, contiene la normale del muro
+    // Struct per il risultato della collisione
     struct CollisionResult {
         bool hasCollided = false;
         glm::vec3 collisionNormal = glm::vec3(0.0f);
     };
 
-    // Struct personalizzata per l'algoritmo A*
+    // Struct per algoritmo A*
     struct AStarNode {
         int total_cost;
         glm::vec2 position;
@@ -55,10 +54,10 @@ public:
     float health;
     float collisionRadius;
 
-    // --- VARIABILI PER LA FASE DI RABBIA ---
+    //VARIABILI PER LA FASE DI RABBIA
     bool isEnraged;
     const float MAX_HEALTH = 5000.0f;
-    float currentMaxHealth; // La salute massima corrente
+    float currentMaxHealth; // salute massima corrente
 
     // Gestione della macchina a stati
     State currentState;
@@ -135,14 +134,14 @@ public:
         if (currentState == State::DEATH || currentState == State::FINISHED) return;
         health -= damage;
 
-        // --- ATTIVA LA RABBIA E RADDOPPIA LA SALUTE ---
+        // ATTIVA RABBIA E RADDOPPIA SALUTE
         if (!isEnraged && health <= MAX_HEALTH / 2.0f) {
             isEnraged = true;
-            speed *= 1.4f; // Aumenta la velocità del 40%
+            speed *= 1.4f; // Aumenta velocità del 40%
 
             
-            currentMaxHealth *= 2.0f;   // Raddoppia la salute massima
-            health = currentMaxHealth;      // Ripristina la salute al nuovo massimo
+            currentMaxHealth *= 2.0f;   // Raddoppia salute massima
+            health = currentMaxHealth;      // Ripristina salute al nuovo massimo
 
             std::cout << "Il Minotauro si infuria! La sua salute massima e' raddoppiata!" << std::endl;
         }
@@ -262,7 +261,7 @@ public:
     void Draw(Shader& shader) {
         shader.use();
 
-        // --- INVIA LO STATO DI RABBIA ALLO SHADER ---
+        // INVIA STATO DI RABBIA A SHADER
         shader.setBool("isEnraged", isEnraged);
 
         auto transforms = animator.GetFinalBoneMatrices();

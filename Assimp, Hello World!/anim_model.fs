@@ -7,7 +7,6 @@ in vec2 TexCoords;
 
 uniform sampler2D texture_diffuse1;
 
-// --- NUOVE RIGHE ---
 uniform bool isEnraged;
 uniform vec3 rageColor = vec3(0.8, 0.0, 0.0); // Colore del bagliore
 
@@ -25,10 +24,10 @@ void main()
 
     vec3 result = (ambient + diffuse) * texture(texture_diffuse1, TexCoords).rgb;
     
-    // --- NUOVE RIGHE ---
-    // Se il Minotauro è infuriato, aggiungi il colore del bagliore al risultato finale
+ 
+    // Se il Minotauro è infuriato, aggiungo colore bagliore al risultato finale
     if (isEnraged) {
-        result += rageColor * 0.3; // Puoi cambiare 0.4 per aumentare/diminuire l'intensità
+        result += rageColor * 0.3; // Posso cambiare 0.4 per aumentare/diminuire l'intensità
     }
 
     FragColor = vec4(result, 1.0);
