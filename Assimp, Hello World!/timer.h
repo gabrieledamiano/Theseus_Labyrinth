@@ -17,7 +17,7 @@ public:
         m_currentTime = m_startTime;
     }
 
-    
+    // --- NUOVA FUNZIONE ---
     // Fa partire il conto alla rovescia con una NUOVA durata personalizzata
     void Start(float new_duration) {
         m_startTime = new_duration; // Aggiorna la durata di riferimento

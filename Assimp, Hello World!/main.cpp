@@ -10,14 +10,12 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/gtx/rotate_vector.hpp>
 
 
 
 #include <iostream>
-
+    
 #include <vector>
 
 #include <stack>
@@ -94,11 +92,12 @@ struct GameContext {
 
     Camera* camera;
 
-    std::vector<DungeonRoom>* dungeonRooms;
+    std::vector<DungeonRoom>* dungeonRooms; 
 
 };
 
 
+// In main.cpp, dopo la struct GameContext
 
 struct MazeChunk {
     unsigned int VAO, VBO;
@@ -107,7 +106,7 @@ struct MazeChunk {
     glm::vec3 size;
 };
 
-std::vector<MazeChunk> mazeChunks; 
+std::vector<MazeChunk> mazeChunks; // Un vettore globale per i nostri chunk
 
 
 
@@ -133,7 +132,7 @@ GameState currentState = GameState::MENU;
 Model* harpyModel_ptr = nullptr;
 JumpScare* harpyJumpScare = nullptr;
 
-Timer jumpScareCooldown(15.0f); // Un jump scare può avvenire al massimo ogni 15 secondi
+Timer jumpScareCooldown(15.0f); // Un jump scare puï¿½ avvenire al massimo ogni 15 secondi
 std::vector<glm::vec3> jumpScareLocations;
 
 
@@ -152,7 +151,7 @@ ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resource
 
 ISoundSource* playerHurtSound = SoundEngine->addSoundSourceFromFile("resources/hurt.mp3");
 ISoundSource* scareSound = SoundEngine->addSoundSourceFromFile("resources/scare.mp3");
-
+  
 
 
 
@@ -166,11 +165,11 @@ float playerAttackDamage = 50.0f;
 
 
 
-Timer victoryMessageTimer(5.0f);
+Timer victoryMessageTimer(5.0f); 
 
-Timer damageEffectTimer(0.5f);
+Timer damageEffectTimer(0.5f); 
 
-Timer cameraShakeTimer(0.3f);
+Timer cameraShakeTimer(0.3f); 
 unsigned int damageOverlayTexture;
 
 
@@ -197,10 +196,10 @@ std::vector<WallSconce> wallSconces;
 Model* wallSconceModel_ptr = nullptr;
 
 
-// --- VARIABILI PER LE STATUE ---
+// --- NUOVE VARIABILI PER LE STATUE ---
 Model* statueModel_ptr = nullptr;
-std::vector<Model> statues; 
-std::vector<glm::mat4> statueMatrices;
+std::vector<Model> statues; // Un semplice vettore di modelli
+std::vector<glm::mat4> statueMatrices; // E le loro matrici per la posizione/rotazione
 
 //Variabili per il sistema particellare
 std::vector<ParticleEmitter> fireEmitters;
@@ -210,11 +209,11 @@ const int MAX_POINT_LIGHTS = 10;
 glm::vec3 pointLightPositions[MAX_POINT_LIGHTS];
 int activePointLights = 0;
 
+// Aggiungila vicino alle altre costanti di gioco
+const float PARTICLE_ACTIVATION_RADIUS = 20.0f; // Raggio in unitï¿½ di gioco. Puoi regolarlo.
 
-const float PARTICLE_ACTIVATION_RADIUS = 20.0f; // Raggio in unità di gioco
 
-
-// --- Variabili Stamina ---
+// --- STAMINA: Nuove variabili ---
 
 float playerStamina = 100.0f;
 
@@ -316,7 +315,7 @@ const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
 
     { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
 
-    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } 
 
 };
 
@@ -434,7 +433,9 @@ bool checkWallCollision(glm::vec3 checkPos);
 
 bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur);
 
-bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur); 
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur); //nuovo
+
+//void setupMazeGeometryVAOs();
 
 void setupMazeGeometry();
 
@@ -455,7 +456,7 @@ bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::ve
 
 
 
-// Controlla se un cubo (definito da centro e dimensione) è nel frustum della camera
+// Controlla se un cubo (definito da centro e dimensione) ï¿½ nel frustum della camera
 bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::vec3& size) {
     for (const auto& plane : cam.frustum) {
         glm::vec3 extents = size * 0.8f;
@@ -464,10 +465,10 @@ bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::ve
             extents.z * abs(plane.normal.z);
         float d = glm::dot(plane.normal, center) + plane.distance;
         if (d < -r) {
-            return false; // L'oggetto è completamente fuori da questo piano
+            return false; // L'oggetto ï¿½ completamente fuori da questo piano
         }
     }
-    return true; // L'oggetto è visibile (o interseca il frustum)
+    return true; // L'oggetto ï¿½ visibile (o interseca il frustum)
 }
 
 
@@ -578,7 +579,7 @@ int main() {
     harpyModel_ptr = new Model("resources/arpia/arpia.glb");
 
 
-    
+    // --- NUOVO: Inizializza l'oggetto JumpScare ---
     if (harpyModel_ptr) {
         harpyJumpScare = new JumpScare(*harpyModel_ptr);
     }
@@ -588,7 +589,7 @@ int main() {
         glm::vec3 position;
         float     rotation;
         float     scale;
-        glm::vec3 flameOffset;
+        glm::vec3 flameOffset; 
     };
 
     // lista di torce
@@ -616,7 +617,7 @@ int main() {
     if (wallSconceModel_ptr) {
         for (const auto& data : torchPositions) {
             wallSconces.emplace_back(*wallSconceModel_ptr, data.position, data.rotation, data.scale, data.flameOffset);
-            fireEmitters.emplace_back(500);
+            fireEmitters.emplace_back(500); 
         }
     }
 
@@ -680,8 +681,8 @@ int main() {
     setupMenuVAO();
 
 
-    setupMazeGeometry();
-
+    setupMazeGeometry(); // <-- NUOVA CHIAMATA
+    //setupMazeGeometryVAOs();
 
 
 
@@ -770,27 +771,27 @@ int main() {
 
         glm::mat4 view = camera.GetViewMatrix();
 
-        // --- AGGIORNA IL FRUSTUM AD OGNI FRAME ---
+        // --- NUOVO: AGGIORNA IL FRUSTUM AD OGNI FRAME ---
         camera.UpdateFrustum(view, projection);
 
 
-        // Calcola l'intensità della luce pulsante usando il tempo di gioco
+        // Calcola l'intensitï¿½ della luce pulsante usando il tempo di gioco
         float time = glfwGetTime();
         // La funzione sin() oscilla tra -1 e 1. La mappiamo nell'intervallo [0.5, 1.0]
         // in modo che la luce si attenui al 50% e torni al 100%, senza mai spegnersi.
-        // Il valore 5.0f controlla la velocità del tremolio. Aumentalo per un effetto più rapido.
+        // Il valore 5.0f controlla la velocitï¿½ del tremolio. Aumentalo per un effetto piï¿½ rapido.
         float flickerIntensity = 0.75f + sin(time * 20.0f) * 0.25f;
 
-        // Calcola il colore diffuso aggiornato in base all'intensità
+        // Calcola il colore diffuso aggiornato in base all'intensitï¿½
         glm::vec3 flickeringDiffuse = spotLightDiffuse * flickerIntensity;
 
         // --- LOGICA CAMERA SHAKE ---
         if (cameraShakeTimer.IsActive()) {
-            float shakeAmount = 0.08f * (cameraShakeTimer.GetTime() / 0.3f); // 0.3f è la durata
+            float shakeAmount = 0.08f * (cameraShakeTimer.GetTime() / 0.3f); // 0.3f ï¿½ la durata
             float offsetX = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
             float offsetY = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
             glm::mat4 shakeTransform = glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, offsetY, 0.0f) * shakeAmount);
-            view = shakeTransform * view; // Tremore alla matrice di vista
+            view = shakeTransform * view; // Applica il tremore alla matrice di vista
         }
 
 
@@ -846,23 +847,25 @@ int main() {
                     }
 
                 }
+
+                // AGGIUNGI QUESTA RIGA:
                 if (harpyJumpScare) {
                     harpyJumpScare->Update(deltaTime);
                 }
 
                 //-- - LOGICA JUMP SCARE-- -
-                jumpScareCooldown.Update(deltaTime);
+                    jumpScareCooldown.Update(deltaTime);
                 if (harpyJumpScare && !jumpScareCooldown.IsActive() && harpyJumpScare->currentState == JumpScare::State::INACTIVE) {
-                    // Possiamo controllare più spesso, perché molti tentativi saranno bloccati dai muri.
+                    // Possiamo controllare piï¿½ spesso, perchï¿½ molti tentativi saranno bloccati dai muri.
                     if ((rand() % 200) == 0) {
                         // 1. Calcola un punto direttamente di fronte alla telecamera
-                        const float jumpScareDistance = 8.0f; // Distanza a cui appare l'arpia.
+                        const float jumpScareDistance = 8.0f; // Distanza a cui appare l'arpia. Puoi regolarla.
                         glm::vec3 spawnPos = camera.Position + camera.Front * jumpScareDistance;
 
                         // 2. Regola l'altezza per essere al livello degli occhi del giocatore
                         spawnPos.y = camera.Position.y;
 
-                        // 3. CONTROLLO CRUCIALE: Attiva il jumpscare solo se il punto di spawn NON è dentro un muro.
+                        // 3. CONTROLLO CRUCIALE: Attiva il jumpscare solo se il punto di spawn NON ï¿½ dentro un muro.
                         if (!checkWallCollision(spawnPos)) {
                             std::cout << "Jumpscare attivato con successo di fronte al giocatore!" << std::endl;
                             harpyJumpScare->Trigger(spawnPos);
@@ -884,9 +887,9 @@ int main() {
                     // Calcola la distanza tra il giocatore e la fiaccola
                     float distanceToSconce = glm::distance(camera.Position, sconce.position);
 
-                    // Aggiorna il sistema di particelle se il giocatore è abbastanza vicino
+                    // Aggiorna il sistema di particelle se il giocatore ï¿½ abbastanza vicino
                     if (distanceToSconce < PARTICLE_ACTIVATION_RADIUS) {
-                        // Calcola la posizione della fiamma 
+                        // Calcola la posizione della fiamma (come facevi prima)
                         glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(sconce.rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
                         glm::vec3 rotatedOffset = glm::vec3(rotationMatrix * glm::vec4(sconce.flameOffset, 1.0f));
                         glm::vec3 firePosition = sconce.position + rotatedOffset;
@@ -896,15 +899,15 @@ int main() {
                 }
 
                 unlockMessageTimer.Update(deltaTime);
-                damageEffectTimer.Update(deltaTime);
-                cameraShakeTimer.Update(deltaTime);
+                damageEffectTimer.Update(deltaTime); 
+                cameraShakeTimer.Update(deltaTime); 
 
             }
 
             // OSCURAMENTO AMBIENTE DURANTE JUMP SCARE
             glm::vec3 currentAmbient = spotLightAmbient;
             if (harpyJumpScare && harpyJumpScare->currentState != JumpScare::State::INACTIVE) {
-                currentAmbient *= 0.4f;
+                currentAmbient *= 0.4f; // Riduci la luce ambientale all'20%
             }
 
 
@@ -999,9 +1002,34 @@ int main() {
 
             glBindTexture(GL_TEXTURE_2D, textureNormalWall);
 
-            
+            //glBindVertexArray(VAO_walls);
+
+
+            // // RENDER ARIADNE'S THREAD (HINT) 
+            //if (showHint && !hintPath.empty()) {
+
+            //    glDepthMask(GL_FALSE);
+
+            //    hintShader->use();
+
+            //    hintShader->setMat4("projection", projection);
+
+            //    hintShader->setMat4("view", view);
+
+            //    hintShader->setMat4("model", glm::mat4(1.0f));
+
+            //    glBindVertexArray(hintVAO);
+
+            //    glDrawArrays(GL_LINE_STRIP, 0, hintPath.size());
+
+            //    glBindVertexArray(0);
+
+            //    glDepthMask(GL_TRUE);
+
+            //}
+
             for (const auto& chunk : mazeChunks) {
-                // Controlla la visibilità dell'INTERO CHUNK
+                // Controlla la visibilitï¿½ dell'INTERO CHUNK
                 if (CheckBoxInFrustum(camera, chunk.center, chunk.size)) {
                     glBindVertexArray(chunk.VAO);
                     // Disegna tutti i muri del chunk con una sola chiamata
@@ -1009,7 +1037,7 @@ int main() {
                     glBindVertexArray(0);
                 }
             }
-
+            
 
             // -- - DISEGNA L'ARPIA ---
             if (harpyJumpScare) {
@@ -1049,7 +1077,7 @@ int main() {
 
                 // Disegna la cassa della stanza
 
-                modelShader.use();
+                modelShader.use(); 
 
                 modelShader.setMat4("projection", projection);
 
@@ -1065,7 +1093,7 @@ int main() {
 
                 // Disegna i nemici della stanza
 
-                modelShader.use();
+                modelShader.use(); 
 
                 modelShader.setMat4("projection", projection);
 
@@ -1107,7 +1135,7 @@ int main() {
 
             glDisable(GL_DEPTH_TEST);
 
-            // RENDER FILO ARIANNA
+            // RENDER ARIADNE'S THREAD (HINT)
             if (showHint && !hintPath.empty()) {
                 // Disabilita temporaneamente il depth test per assicurarsi che il filo sia sempre visibile
                 glDisable(GL_DEPTH_TEST);
@@ -1119,7 +1147,7 @@ int main() {
                 hintShader->setMat4("projection", projection);
                 hintShader->setMat4("view", view);
                 hintShader->setMat4("model", glm::mat4(1.0f));
-
+ 
                 glLineWidth(3.0f);
 
                 glBindVertexArray(hintVAO);
@@ -1132,7 +1160,7 @@ int main() {
 
 
 
-            // --- Disegna il contatore FPS ---
+            // --- NUOVO: Disegna il contatore FPS ---
             if (showFPS) {
                 std::string fpsText = "FPS: " + std::to_string(fps);
                 RenderText(fpsText.c_str(), SCR_WIDTH - 120.0f, SCR_HEIGHT - 30.0f, 0.5f, glm::vec3(0.0, 1.0, 0.0f));
@@ -1148,11 +1176,11 @@ int main() {
 
 
             if (damageEffectTimer.IsActive()) {
-                glDisable(GL_DEPTH_TEST); // Disabilita il test di profondità per disegnarlo sopra a tutto
+                glDisable(GL_DEPTH_TEST); // Disabilita il test di profonditï¿½ per disegnarlo sopra a tutto
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                menuShader.use();
+                menuShader.use(); 
 
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, damageOverlayTexture);
@@ -1160,7 +1188,7 @@ int main() {
                 glBindVertexArray(menuVAO);
                 glDrawArrays(GL_TRIANGLES, 0, 6);
 
-                glEnable(GL_DEPTH_TEST); // Riabilita il test di profondità
+                glEnable(GL_DEPTH_TEST); // Riabilita il test di profonditï¿½
             }
 
 
@@ -1222,12 +1250,7 @@ int main() {
 
 
 
-                    
-
-                    
-                    float healthPercentage = minotaur.health / minotaur.currentMaxHealth;
-                    int minoFilledWidth = static_cast<int>(healthPercentage * minoBarWidth);
-
+                    int minoFilledWidth = static_cast<int>((minotaur.health / 100.0f) * minoBarWidth);
 
 
 
@@ -1245,23 +1268,9 @@ int main() {
 
                     minoHealthBar += "]";
 
-                    // *** Colore diverso per rage mode ***
-                    glm::vec3 healthBarColor = minotaur.isEnraged ?
-                        glm::vec3(1.0, 0.0, 0.0) :  // Rosso intenso in rage
-                        glm::vec3(1.0, 0.3, 0.3);   // Rosso normale
-
-                    if (minotaur.isEnraged) {
-                        minoHealthBar += " [RABBIA]";
-                    }
 
 
-
-                    RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, healthBarColor);
-
-                    
-                    if (minotaur.isEnraged) {
-                        RenderText("IL MINOTAURO E' INFURIATO!", 800.0f, SCR_HEIGHT - 110.0f, 0.6f, glm::vec3(1.0, 0.0, 0.0));
-                    }
+                    RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
 
                 }
 
@@ -1355,7 +1364,7 @@ int main() {
 
 
 
-                                // Aggiungi alla lista solo se è vicino e di fronte
+                                // Aggiungi alla lista solo se ï¿½ vicino e di fronte
 
                                 if (distanceToEnemy < enemy.NOTICE_RANGE && dotProduct > 0.4f) {
 
@@ -1479,7 +1488,7 @@ int main() {
         for (size_t i = 0; i < wallSconces.size(); ++i) {
             WallSconce& sconce = wallSconces[i];
 
-            // Disegna il modello 3D della fiaccola solo se è visibile nella telecamera
+            // Disegna il modello 3D della fiaccola solo se ï¿½ visibile nella telecamera
             glm::vec3 sconceSize = glm::vec3(1.0f, 2.5f, 1.0f);
             if (CheckBoxInFrustum(camera, sconce.position, sconceSize)) {
                 sconce.Draw(modelShader);
@@ -1488,7 +1497,7 @@ int main() {
 
         // PASSO 2: Disegna tutti gli oggetti trasparenti (le particelle della fiamma)
         for (size_t i = 0; i < wallSconces.size(); ++i) {
-            // Disegna le particelle della fiamma solo se il giocatore è nel raggio di attivazione
+            // Disegna le particelle della fiamma solo se il giocatore ï¿½ nel raggio di attivazione
             float distanceToSconce = glm::distance(camera.Position, wallSconces[i].position);
             if (distanceToSconce < PARTICLE_ACTIVATION_RADIUS) {
                 fireEmitters[i].Draw(view, projection);
@@ -1509,7 +1518,7 @@ int main() {
 
     delete hintShader;
 
-    
+    //glDeleteVertexArrays(1, &VAO_walls);
     for (auto& chunk : mazeChunks) {
         glDeleteVertexArrays(1, &chunk.VAO);
         glDeleteBuffers(1, &chunk.VBO);
@@ -1618,7 +1627,7 @@ void PlayerTakeDamage(float damage) {
         if (playerHealth < 0) playerHealth = 0;
 
         damageEffectTimer.Start();
-        cameraShakeTimer.Start();
+        cameraShakeTimer.Start(); 
         if (playerHurtSound) SoundEngine->play2D(playerHurtSound, false);
 
         std::cout << "Player health: " << playerHealth << std::endl;
@@ -1686,11 +1695,11 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 
-
+        
 
         for (auto& room : *context->dungeonRooms) {
 
-            // Controlla i nemici solo se la stanza è attiva
+            // Controlla i nemici solo se la stanza ï¿½ attiva
 
             if (room.state == DungeonRoom::RoomState::ACTIVE) {
 
@@ -1742,7 +1751,7 @@ void ResetGame(Camera& cam, Minotaur& minotaur) {
 
     playerStamina = PLAYER_MAX_STAMINA;
 
-    playerAttackDamage = 50.0f;
+    playerAttackDamage = 50.0f; 
 
 
 
@@ -2149,11 +2158,11 @@ void processInput(GLFWwindow* window) {
 
         }
 
-       
+        // --- NUOVA LOGICA PER IL TASTO F ---
         static bool f_key_pressed = false;
         if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !f_key_pressed) {
             f_key_pressed = true;
-            showFPS = !showFPS; // Inverte lo stato di visibilità
+            showFPS = !showFPS; // Inverte lo stato di visibilitï¿½
         }
         if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
             f_key_pressed = false;
@@ -2165,7 +2174,7 @@ void processInput(GLFWwindow* window) {
 
         bool isSprinting = false;
 
-        // Controlla se il tasto SHIFT è premuto e se c'è stamina residua
+        // Controlla se il tasto SHIFT ï¿½ premuto e se c'ï¿½ stamina residua
 
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && playerStamina > 0) {
 
@@ -2179,7 +2188,7 @@ void processInput(GLFWwindow* window) {
 
         else {
 
-            // Altrimenti, rigenera la stamina se non è al massimo
+            // Altrimenti, rigenera la stamina se non ï¿½ al massimo
 
             if (playerStamina < PLAYER_MAX_STAMINA) {
 
@@ -2193,7 +2202,7 @@ void processInput(GLFWwindow* window) {
 
 
 
-        // Determina la velocità di movimento attuale
+        // Determina la velocitï¿½ di movimento attuale
 
         const float NORMAL_SPEED = 3.5f;
 
@@ -2208,6 +2217,8 @@ void processInput(GLFWwindow* window) {
 
 
         glm::vec3 originalPosition = camera.Position;
+
+        // float moveSpeed = 3.5f; // Rimossa la velocitï¿½ fissa
 
         glm::vec3 desiredMovement(0.0f);
 
@@ -2227,7 +2238,7 @@ void processInput(GLFWwindow* window) {
 
             desiredMovement.y = 0.0f;
 
-            // Usa la nuova velocità dinamica calcolata dalla logica della stamina
+            // Usa la nuova velocitï¿½ dinamica calcolata dalla logica della stamina
 
             desiredMovement = glm::normalize(desiredMovement) * currentMoveSpeed * deltaTime;
 
@@ -2235,7 +2246,7 @@ void processInput(GLFWwindow* window) {
 
 
 
-        // La logica di collisione e movimento rimane invariata
+        // La tua logica di collisione e movimento rimane invariata
 
         if (glm::length(desiredMovement) > 0.0f) {
 
@@ -2355,7 +2366,7 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
             float worldZ = y * CELL_SIZE + CELL_SIZE / 2.0f;
 
             if (initial_maze_map[y][x] == 0) {
-                // Se la cella è vuota, la aggiungiamo come possibile punto di spawn
+                // Se la cella ï¿½ vuota, la aggiungiamo come possibile punto di spawn
                 emptySpaces.push_back(glm::vec3(worldX, 1.5f, worldZ));
             }
             else if (initial_maze_map[y][x] == 2) {
@@ -2377,6 +2388,19 @@ void loadLevelData(glm::vec3& minotaurSpawnPos) {
                 model = glm::scale(model, glm::vec3(0.8f));
                 statueMatrices.push_back(model);
             }
+        }
+    }
+
+    // --- NUOVA LOGICA: SCEGLI PUNTI CASUALI PER IL JUMP SCARE ---
+    if (!emptySpaces.empty()) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(emptySpaces.begin(), emptySpaces.end(), g); // Mescola tutte le posizioni valide
+
+        // Scegliamo le prime N posizioni mescolate (es. 5 punti di spawn)
+        int numJumpScares = std::min((int)emptySpaces.size(), 5);
+        for (int i = 0; i < numJumpScares; ++i) {
+            jumpScareLocations.push_back(emptySpaces[i]);
         }
     }
 
