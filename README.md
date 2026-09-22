@@ -1,7 +1,5 @@
 # Theseus' Labyrinth
 
-![Theseus' Labyrinth preview](Assimp%2C%20Hello%20World%21/resources/textures/endmenu.jpg)
-
 Theseus' Labyrinth is a first-person 3D labyrinth game developed in C++ with OpenGL. Explore the maze, fight the Minotaur and its guardians, collect power-ups, and find the exit.
 
 ## Features
