@@ -126,7 +126,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;GLM_ENABLE_EXPERIMENTAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -137,7 +137,7 @@
       <AdditionalDependencies>freetype.lib;assimp-vc142-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(ProjectDir)x64\debug\assimp-vc142-mtd.dll" "$(TargetDir)"</Command>
+      <Command>copy /Y "$(ProjectDir)lib\x64\release\assimp-vc142-mt.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -146,7 +146,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;GLM_ENABLE_EXPERIMENTAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -163,16 +163,26 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="anim_model.fs" />
+    <None Include="anim_model.vs" />
     <None Include="blending.fs" />
     <None Include="blending.vs" />
     <None Include="fragment_shader.fs" />
     <None Include="lamp.fs" />
     <None Include="lamp.vs" />
+    <None Include="line.fs" />
+    <None Include="line.vs" />
     <None Include="menu.fs" />
     <None Include="menu.vs" />
+    <None Include="model.fs" />
+    <None Include="model.vs" />
     <None Include="model_loading.fs" />
     <None Include="model_loading.vs" />
+    <None Include="normal_mapping.fs" />
+    <None Include="normal_mapping.vs" />
     <None Include="packages.config" />
+    <None Include="particle.fs" />
+    <None Include="particle.vs" />
     <None Include="spot_light.fs" />
     <None Include="spot_light.vs" />
     <None Include="text.fs" />
@@ -180,15 +190,33 @@
     <None Include="vertex_shader.vs" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="animation.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="particleEmitter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="animation.h" />
+    <ClInclude Include="animator.h" />
+    <ClInclude Include="assimp_glm_helpers.h" />
+    <ClInclude Include="bone.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="cell.h" />
+    <ClInclude Include="chest.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="dungeon_room.h" />
+    <ClInclude Include="enemy.h" />
+    <ClInclude Include="jumpscare.h" />
     <ClInclude Include="mesh.h" />
+    <ClInclude Include="minotaur.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="particle.h" />
+    <ClInclude Include="particleEmitter.h" />
     <ClInclude Include="render_text.h" />
     <ClInclude Include="shader_m.h" />
+    <ClInclude Include="sword.h" />
+    <ClInclude Include="timer.h" />
+    <ClInclude Include="wallSconce.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

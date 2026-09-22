@@ -4,12 +4,13 @@
 #include <glad/glad.h> 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #include "shader_m.h"
-
 #include <string>
 #include <vector>
 using namespace std;
+
+// Definiamo quante ossa al massimo possono influenzare un singolo vertice
+#define MAX_BONE_INFLUENCE 4
 
 struct Vertex {
     glm::vec3 Position;
@@ -17,6 +18,9 @@ struct Vertex {
     glm::vec2 TexCoords;
     glm::vec3 Tangent;
     glm::vec3 Bitangent;
+    // Dati per le ossa (bones)
+    int m_BoneIDs[MAX_BONE_INFLUENCE];
+    float m_Weights[MAX_BONE_INFLUENCE];
 };
 
 struct Texture {
@@ -32,22 +36,23 @@ public:
     vector<Texture>      textures;
     unsigned int VAO;
 
-    Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures) {
+    Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
+    {
         this->vertices = vertices;
         this->indices = indices;
         this->textures = textures;
-
         setupMesh();
     }
 
-    void Draw(Shader& shader) {
+    void Draw(Shader& shader)
+    {
         unsigned int diffuseNr = 1;
         unsigned int specularNr = 1;
         unsigned int normalNr = 1;
         unsigned int heightNr = 1;
-        for (unsigned int i = 0; i < textures.size(); i++) {
+        for (unsigned int i = 0; i < textures.size(); i++)
+        {
             glActiveTexture(GL_TEXTURE0 + i);
-
             string number;
             string name = textures[i].type;
             if (name == "texture_diffuse")
@@ -64,7 +69,7 @@ public:
         }
 
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         glActiveTexture(GL_TEXTURE0);
@@ -73,7 +78,8 @@ public:
 private:
     unsigned int VBO, EBO;
 
-    void setupMesh() {
+    void setupMesh()
+    {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
@@ -85,20 +91,28 @@ private:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
+        // Attributi dei vertici
+        // Posizione
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-
+        // Normali
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-
+        // Coordinate Textura
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
-
+        // Tangente
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
-
+        // Bitangente
         glEnableVertexAttribArray(4);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
+        // ID delle ossa
+        glEnableVertexAttribArray(5);
+        glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, m_BoneIDs));
+        // Pesi delle ossa
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, m_Weights));
 
         glBindVertexArray(0);
     }

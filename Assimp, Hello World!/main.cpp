@@ -1,278 +1,926 @@
 #include <glad/glad.h>
+
 #include <GLFW/glfw3.h>
 
+
+
 #include <glm/glm.hpp>
+
 #include <glm/gtc/matrix_transform.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/gtx/rotate_vector.hpp>
 
+
+
 #include <iostream>
+    
 #include <vector>
+
 #include <stack>
+
 #include <random>
+
 #include <ctime>
+
 #include <cmath>
+
 #include <algorithm>
+
 #include <limits>
+
 #include <string>
+
 #include <map>
+
+#include <queue>
+
 #include <irrklang/irrKlang.h>
+
 #include "render_text.h"
+
+#include "cell.h"
+
+#include "config.h"
+
+#include "wallSconce.h" 
+#include "ParticleEmitter.h"
+
+
 
 #pragma comment(lib, "irrKlang.lib")
 
+
+
 #include "shader_m.h"
+
 #include "camera.h"
 
+#include "sword.h"
+
+#include "animator.h"
+
+#include "minotaur.h"
+
+#include "chest.h" 
+
+
+
 #define STB_IMAGE_IMPLEMENTATION
+
 #include "stb_image.h"
+
+#include "timer.h"
+
+#include "dungeon_room.h"
+
+#include "enemy.h"
+#include "jumpscare.h"
+
+
 
 using namespace irrklang;
 
-// --- Aggiunto da MAIN 1 ---
-ISoundEngine* SoundEngine = createIrrKlangDevice();
-ISoundSource* mainTheme = SoundEngine->addSoundSourceFromFile("resources/main.mp3");
-//ISoundSource* attackSound = SoundEngine->addSoundSourceFromFile("resources/sword_swing.mp3");
-//ISoundSource* therdSound = SoundEngine->addSoundSourceFromFile("resources/chiave.mp3");
-//ISound* ambientSound;
-// --- Fine aggiunta ---
 
-const unsigned int SCR_WIDTH = 1920;
-const unsigned int SCR_HEIGHT = 1080;
 
-// --- MODIFICA: Variabile di stato del gioco ---
-bool isGameActive = false;
+struct GameContext {
 
-const int MAP_SIZE_ROWS = 40;
-const int MAP_SIZE_COLS = 20;
+    Sword* sword;
 
-const int MAZE_WIDTH = MAP_SIZE_COLS;
-const int MAZE_HEIGHT = MAP_SIZE_ROWS;
+    Minotaur* minotaur;
 
-const float CELL_SIZE = 1.5f;
-const float WALL_HEIGHT = 3.0f;
+    Camera* camera;
 
-const float CAMERA_HEIGHT = 1.5f;
-const float CAMERA_COLLISION_RADIUS = 0.2f;
-const float MIN_CAMERA_Y = 0.1f;
-const float MAX_CAMERA_Y = WALL_HEIGHT - 0.1f;
+    std::vector<DungeonRoom>* dungeonRooms; 
 
-const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
-{ 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-{ 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1 },
-{ 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
-{ 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
-{ 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 },
-{ 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-{ 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-{ 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-{ 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-{ 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
-{ 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
-{ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
-{ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1 },
-{ 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-{ 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-{ 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
-{ 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
-struct Cell { bool visited = false; bool wall = true; };
+
+// In main.cpp, dopo la struct GameContext
+
+struct MazeChunk {
+    unsigned int VAO, VBO;
+    int vertexCount;
+    glm::vec3 center;
+    glm::vec3 size;
+};
+
+std::vector<MazeChunk> mazeChunks; // Un vettore globale per i nostri chunk
+
+
+
+// --- STATO DEL GIOCO ---
+
+enum class GameState {
+
+    MENU,
+
+    PLAYING,
+
+    VICTORY,
+
+    GAME_OVER
+
+};
+
+
+
+GameState currentState = GameState::MENU;
+
+// --- VARIABILI PER JUMP SCARE ---
+Model* harpyModel_ptr = nullptr;
+JumpScare* harpyJumpScare = nullptr;
+
+Timer jumpScareCooldown(15.0f); // Un jump scare puï¿½ avvenire al massimo ogni 15 secondi
+std::vector<glm::vec3> jumpScareLocations;
+
+
+
+//--- Variabili Globali Audio ---
+
+ISoundEngine* SoundEngine = createIrrKlangDevice();
+
+ISoundSource* mainTheme = SoundEngine->addSoundSourceFromFile("resources/main.mp3");
+
+ISoundSource* attackSound = SoundEngine->addSoundSourceFromFile("resources/sword_swing.mp3");
+
+ISoundSource* minotaurHitSound = SoundEngine->addSoundSourceFromFile("resources/hit.mp3");
+
+ISoundSource* minotaurDeathSound = SoundEngine->addSoundSourceFromFile("resources/death.mp3");
+
+ISoundSource* playerHurtSound = SoundEngine->addSoundSourceFromFile("resources/hurt.mp3");
+ISoundSource* scareSound = SoundEngine->addSoundSourceFromFile("resources/scare.mp3");
+  
+
+
+
+// --- Variabili Globali di Gioco ---
+
+float playerHealth = 100.0f;
+
+const float PLAYER_MAX_HEALTH = 100.0f;
+
+float playerAttackDamage = 50.0f;
+
+
+
+Timer victoryMessageTimer(5.0f); 
+
+Timer damageEffectTimer(0.5f); 
+
+Timer cameraShakeTimer(0.3f); 
+unsigned int damageOverlayTexture;
+
+
+
+std::vector<DungeonRoom> dungeonRooms;
+
+Model* enemyModel_ptr = nullptr;
+
+
+
+// --- Variabili per le Casse ---
+
+std::vector<Chest> chests;
+
+Model* chestModel_ptr = nullptr;
+
+Timer powerUpMessageTimer(4.0f);
+
+std::string lastPowerUpMessage = "";
+
+
+//Variabili per le fiaccole
+std::vector<WallSconce> wallSconces;
+Model* wallSconceModel_ptr = nullptr;
+
+
+// --- NUOVE VARIABILI PER LE STATUE ---
+Model* statueModel_ptr = nullptr;
+std::vector<Model> statues; // Un semplice vettore di modelli
+std::vector<glm::mat4> statueMatrices; // E le loro matrici per la posizione/rotazione
+
+//Variabili per il sistema particellare
+std::vector<ParticleEmitter> fireEmitters;
+
+//Variabili per illuminazione
+const int MAX_POINT_LIGHTS = 10;
+glm::vec3 pointLightPositions[MAX_POINT_LIGHTS];
+int activePointLights = 0;
+
+// Aggiungila vicino alle altre costanti di gioco
+const float PARTICLE_ACTIVATION_RADIUS = 20.0f; // Raggio in unitï¿½ di gioco. Puoi regolarlo.
+
+
+// --- STAMINA: Nuove variabili ---
+
+float playerStamina = 100.0f;
+
+const float PLAYER_MAX_STAMINA = 100.0f;
+
+const float SPRINT_DRAIN_RATE = 25.0f; // Punti al secondo
+
+const float STAMINA_REGEN_RATE = 15.0f; // Punti al secondo
+
+
+// --- VARIABILI PER IL CONTATORE FPS ---
+bool showFPS = false;
+int frameCount = 0;
+float timeSinceLastUpdate = 0.0f;
+int fps = 0;
+
+
+
+
+
+// Muro = 1, Minotauro = 2, Uscita = 3, Casse = 4
+const int initial_maze_map[MAP_SIZE_ROWS][MAP_SIZE_COLS] = {
+
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+
+    { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1 },
+
+    { 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
+
+    { 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
+
+    { 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 },
+
+    { 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+
+    { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 4, 0, 0, 0, 1, 1 },
+
+    { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+
+    { 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+
+    { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1 },
+
+    { 1, 5, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
+
+    { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
+
+    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1 },
+
+    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1 },
+
+    { 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1 },
+
+    { 1, 5, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
+
+    { 1, 0, 0, 4, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 5, 1 },
+
+    { 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+
+    { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 4, 0, 0, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
+
+    { 1, 1, 1, 1, 1, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } 
+
+};
+
+
+
 std::vector<std::vector<Cell>> maze(MAZE_HEIGHT, std::vector<Cell>(MAZE_WIDTH));
 
 Camera camera(glm::vec3(0.0f, CAMERA_HEIGHT, 0.0f));
+
 float lastX = SCR_WIDTH / 2.0f;
+
 float lastY = SCR_HEIGHT / 2.0f;
+
 bool firstMouse = true;
 
 float deltaTime = 0.0f;
+
 float lastFrame = 0.0f;
 
-// --- Aggiunto per il testo ---
-int itemsFound = 0;
-// --- Fine aggiunta ---
 
 
 unsigned int VBO_cube_lit, VAO_walls, VAO_floor, VAO_ceiling;
-unsigned int VAO_lamp;
-unsigned int VAO_window, VBO_window;
-unsigned int textureWall, textureFloor, textureCeiling, textureSpecularMaze;
-unsigned int textureWindow;
 
-// --- MODIFICA: Aggiunti VAO e texture per il menu ---
-unsigned int menuVAO, menuVBO;
-unsigned int menuTexture;
+unsigned int VAO_lamp, menuVAO, menuVBO;
+
+unsigned int textureWall, textureFloor, textureCeiling, menuTexture, endMenuTexture;
+
+unsigned int textureNormalWall, textureNormalFloor, textureNormalCeiling;
+
+
 
 const int NR_SPOT_LIGHTS = 20;
+
 glm::vec3 spotLightPositions[NR_SPOT_LIGHTS];
+
 glm::vec3 spotLightDirection = glm::vec3(0.0f, -1.0f, 0.0f);
+
 glm::vec3 spotLightAmbient = glm::vec3(0.4f, 0.2f, 0.1f);
+
 glm::vec3 spotLightSpecular = glm::vec3(0.4f, 0.0f, 0.0f);
+
 glm::vec3 spotLightDiffuse = glm::vec3(0.6f, 0.0f, 0.0f);
+
 float spotLightConstant = 1.0f;
+
 float spotLightLinear = 0.07f;
+
 float spotLightQuadratic = 0.017f;
+
 float spotLightCutOff = glm::cos(glm::radians(54.0f));
+
 float spotLightOuterCutOff = glm::cos(glm::radians(88.0f));
+
 float mazeShininess = 32.0f;
 
+
+
+
+
+// --- VARIABILI PER IL FILO DI ARIANNA ---
+
+Shader* hintShader;
+
+unsigned int hintVAO, hintVBO;
+
+std::vector<glm::vec3> hintPath;
+
+bool showHint = false;
+
+float hintTimer = 0.0f;
+
+const float HINT_DURATION = 5.0f;
+
+bool ariadneThreadUnlocked = false;  // True dopo aver sconfitto il Minotauro
+
+Timer unlockMessageTimer(7.0f);      // Timer per il messaggio di sblocco
+
+
+
+// Struct AStarNode (necessaria per FindPathForHint)
+
+struct AStarNode {
+
+    int total_cost;
+
+    glm::vec2 position;
+
+
+
+    bool operator>(const AStarNode& other) const {
+
+        return total_cost > other.total_cost;
+
+    }
+
+};
+
+
+
+// Dichiarazioni funzioni
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
 void processInput(GLFWwindow* window);
-void loadMazeFromMap();
-bool checkCollision(glm::vec3 checkPos);
-void setupMazeGeometryVAOs();
-void setupWindowVAO();
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
+void loadLevelData(glm::vec3& minotaurSpawnPos);
+
+bool checkWallCollision(glm::vec3 checkPos);
+
+bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur);
+
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur); //nuovo
+
+//void setupMazeGeometryVAOs();
+
+void setupMazeGeometry();
+
 void setupMenuVAO();
+
+void ResetGame(Camera& cam, Minotaur& minotaur);
+
 unsigned int loadtexture(const std::string& path, bool clampToEdge = false);
 
-int main() {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-    glfwWindowHint(GLFW_SAMPLES, 4);
+void PlayerTakeDamage(float damage);
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Labirinto", NULL, NULL);
-    if (window == NULL) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
+inline unsigned int TextureFromFile(const char* path, const std::string& directory, bool gamma);
+
+void FindPathForHint(glm::vec2 start, glm::vec2 target, std::vector<glm::vec3>& path);
+bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::vec3& size);
+
+
+
+
+
+// Controlla se un cubo (definito da centro e dimensione) ï¿½ nel frustum della camera
+bool CheckBoxInFrustum(const Camera& cam, const glm::vec3& center, const glm::vec3& size) {
+    for (const auto& plane : cam.frustum) {
+        glm::vec3 extents = size * 0.8f;
+        float r = extents.x * abs(plane.normal.x) +
+            extents.y * abs(plane.normal.y) +
+            extents.z * abs(plane.normal.z);
+        float d = glm::dot(plane.normal, center) + plane.distance;
+        if (d < -r) {
+            return false; // L'oggetto ï¿½ completamente fuori da questo piano
+        }
     }
+    return true; // L'oggetto ï¿½ visibile (o interseca il frustum)
+}
+
+
+
+int main() {
+
+    glfwInit();
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+#endif
+
+
+
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Theseus' Labyrinth", NULL, NULL);
+
+    if (window == NULL) {
+
+        std::cout << "Failed to create GLFW window" << std::endl;
+
+        glfwTerminate();
+
+        return -1;
+
+    }
+
     glfwMakeContextCurrent(window);
+
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
     glfwSetCursorPosCallback(window, mouse_callback);
+
     glfwSetScrollCallback(window, scroll_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+
+
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
+
+        std::cout << "Failed to initialize GLAD" << std::endl;
+
         return -1;
+
     }
 
-    // --- Aggiunto da MAIN 1 ---
-    initRenderText(SCR_WIDTH, SCR_HEIGHT);
-    // --- Fine aggiunta ---
 
-    stbi_set_flip_vertically_on_load(true);
+
+    initRenderText(SCR_WIDTH, SCR_HEIGHT);
+
+    stbi_set_flip_vertically_on_load(false);
 
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_MULTISAMPLE);
+
     glEnable(GL_BLEND);
+
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    loadMazeFromMap();
+
+
+    Shader modelShader("model.vs", "model.fs");
+
+    Shader mazeShader("spot_light.vs", "spot_light.fs");
+
+    Shader lampShader("lamp.vs", "lamp.fs");
+
+    Shader menuShader("menu.vs", "menu.fs");
+
+    Shader animModelShader("anim_model.vs", "anim_model.fs");
+
+    hintShader = new Shader("line.vs", "line.fs");
+
+
+
+    Sword sword("resources/sword/sword.obj");
+
+    Model minotaurModel("resources/minotaur/minotauro.glb");
+
+    minotaurModel.LoadAnimation("idle", "resources/minotaur/idle.glb");
+
+    minotaurModel.LoadAnimation("walk", "resources/minotaur/walk.glb");
+
+    minotaurModel.LoadAnimation("get_hit", "resources/minotaur/get_hit.glb");
+
+    minotaurModel.LoadAnimation("death", "resources/minotaur/death.glb");
+
+    minotaurModel.LoadAnimation("attack", "resources/minotaur/attack.glb");
+
+
+
+    // Carica il modello della cassa
+
+    chestModel_ptr = new Model("resources/chest/chest.glb");
+
+    enemyModel_ptr = new Model("resources/enemy/golem.glb");
+
+    //Modello della fiaccola
+    wallSconceModel_ptr = new Model("resources/torch/torch.glb");
+
+    harpyModel_ptr = new Model("resources/arpia/arpia.glb");
+
+
+    // --- NUOVO: Inizializza l'oggetto JumpScare ---
+    if (harpyModel_ptr) {
+        harpyJumpScare = new JumpScare(*harpyModel_ptr);
+    }
+
+    // struttura per i dati della torcia
+    struct TorchData {
+        glm::vec3 position;
+        float     rotation;
+        float     scale;
+        glm::vec3 flameOffset; 
+    };
+
+    // lista di torce
+    std::vector<TorchData> torchPositions = {
+        { glm::vec3(1.9f, 1.5f, 5.0f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(1.9f, 1.5f, 18.90f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(17.7564f, 1.5f, 25.22f), -90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(11.2421f, 1.5f, 28.73f), 90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(10.3171f, 1.5f, 17.787f), 90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(20.90f, 1.5f, 7.1f), 90.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(19.90f, 1.5, 12.50f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(26.9f, 1.5f, 30.75f), 180.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(21.75f, 1.5f, 41.43f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(7.3f, 1.5f, 41.66f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(1.85f, 1.5f, 29.89f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(1.83f, 1.5, 54.14), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(19.85f, 1.5f, 60.41f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(9.05f, 1.5f, 64.53f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(25.25f, 1.5f, 67.54f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+        { glm::vec3(25.25f, 1.5f, 53.23f), 0.0f, 2.0f, glm::vec3(0.25f, 0.3f, 0.0f) },
+    };
+
+    activePointLights = 0;
+
+    if (wallSconceModel_ptr) {
+        for (const auto& data : torchPositions) {
+            wallSconces.emplace_back(*wallSconceModel_ptr, data.position, data.rotation, data.scale, data.flameOffset);
+            fireEmitters.emplace_back(500); 
+        }
+    }
+
+
+
+    glm::vec3 minotaurStartPosition;
+
+    loadLevelData(minotaurStartPosition);
+
+
 
     camera.Position = glm::vec3(1 * CELL_SIZE + CELL_SIZE / 2.0f, CAMERA_HEIGHT, 1 * CELL_SIZE + CELL_SIZE / 2.0f);
 
+    Minotaur minotaur(minotaurModel, minotaurStartPosition, maze);
+
+
     float lightHeight = WALL_HEIGHT - 0.1f;
-    spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
-    /* if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(8.73f, lightHeight, 5.30f);
-     if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(10.16f, lightHeight, 14.29f);
-     if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(8.04f, lightHeight, 23.15f);
-     if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(24.24f, lightHeight, 2.99f);
-     if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(14.11f, lightHeight, 14.81f);
-     if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(23.33f, lightHeight, 14.56f);
-     if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(26.92f, lightHeight, 29.50f);*/
-    if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(24.00f, lightHeight, 2.00f);
-    if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(1.77f, lightHeight, 19.19f);
-    if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(10.15f, lightHeight, 14.72f);
-    if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(7.92f, lightHeight, 3.38f);
+    //spotLightPositions[0] = glm::vec3(1.5f * CELL_SIZE, lightHeight, 1.5f * CELL_SIZE);
+    //if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.03918f, lightHeight, 2.43882f);
+    if (NR_SPOT_LIGHTS > 1) spotLightPositions[1] = glm::vec3(2.07f, 2.6f, 18.91f);
+    //if (NR_SPOT_LIGHTS > 2) spotLightPositions[2] = glm::vec3(2.03109f, lightHeight, 23.1429f);
+    if (NR_SPOT_LIGHTS > 3) spotLightPositions[3] = glm::vec3(1.9f, 2.6f, 5.0f);
+    if (NR_SPOT_LIGHTS > 4) spotLightPositions[4] = glm::vec3(17.7564f, 2.6f, 25.4229f);
+    if (NR_SPOT_LIGHTS > 5) spotLightPositions[5] = glm::vec3(11.2421f, 2.6f, 28.5234f);
+    if (NR_SPOT_LIGHTS > 6) spotLightPositions[6] = glm::vec3(10.3171f, 2.6f, 17.787f);
+    if (NR_SPOT_LIGHTS > 7) spotLightPositions[7] = glm::vec3(20.90f, 2.6f, 7.1f);
+    if (NR_SPOT_LIGHTS > 8) spotLightPositions[8] = glm::vec3(19.90f, 2.6, 12.50f);
+    if (NR_SPOT_LIGHTS > 9) spotLightPositions[9] = glm::vec3(26.7f, 2.6f, 30.75f);
+    if (NR_SPOT_LIGHTS > 10) spotLightPositions[10] = glm::vec3(21.80f, 2.6f, 41.43f);
+    if (NR_SPOT_LIGHTS > 11) spotLightPositions[11] = glm::vec3(7.3f, 2.6f, 41.66f);
+    if (NR_SPOT_LIGHTS > 12) spotLightPositions[12] = glm::vec3(1.85f, 2.6f, 29.89f);
+    if (NR_SPOT_LIGHTS > 13) spotLightPositions[13] = glm::vec3(1.83f, 2.6f, 54.14);
+    if (NR_SPOT_LIGHTS > 14) spotLightPositions[14] = glm::vec3(19.85f, 2.6f, 60.41f);
+    if (NR_SPOT_LIGHTS > 15) spotLightPositions[15] = glm::vec3(9.15f, 2.6f, 64.53f);
+    if (NR_SPOT_LIGHTS > 16) spotLightPositions[16] = glm::vec3(25.32f, 2.6f, 67.54f);
+    if (NR_SPOT_LIGHTS > 17) spotLightPositions[17] = glm::vec3(25.32f, 2.6f, 53.23f);
 
-    std::vector<glm::vec3> windowPositions;
-    float windowY = WALL_HEIGHT / 2.0f;
-    windowPositions.push_back(glm::vec3(2.25f, windowY, 0.20f));
-    windowPositions.push_back(glm::vec3(29.25f, windowY, 12.72f));
-    windowPositions.push_back(glm::vec3(29.25f, windowY, 31.29f));
 
-    textureWall = loadtexture("resources/textures/wall_diffuse.jpg");
+    textureWall = loadtexture("resources/textures/lab_wall_diffuse.jpg");
+
+    textureNormalWall = loadtexture("resources/textures/lab_wall_normal.jpg");
+
     textureFloor = loadtexture("resources/textures/floor_diffuse.jpg");
-    textureCeiling = loadtexture("resources/textures/ceiling.jpg");
-    //textureSpecularMaze = loadtexture("resources/textures/normal2.jpg");
-    textureWindow = loadtexture("resources/textures/window.png", true);
 
-    // --- MODIFICA: Caricamento texture e setup VAO del menu ---
-    menuTexture = loadtexture("resources/textures/menu.jpg", false);
+    textureNormalFloor = loadtexture("resources/textures/floor_normal.jpg");
+
+    textureCeiling = loadtexture("resources/textures/ceiling_diffuse.jpg");
+
+    textureNormalCeiling = loadtexture("resources/textures/ceiling_normal.jpg");
+
+    menuTexture = loadtexture("resources/textures/menu.jpg");
+
+    endMenuTexture = loadtexture("resources/textures/endmenu.jpg");
+
+    damageOverlayTexture = loadtexture("resources/textures/damage_overlay.png", true);
+
+    statueModel_ptr = new Model("resources/statua/statua.glb");
+
+
+
     setupMenuVAO();
 
-    if (textureWall == 0 || textureFloor == 0 || textureCeiling == 0 /*|| textureSpecularMaze == 0*/ || textureWindow == 0 || menuTexture == 0) {
-        std::cerr << "Errore caricamento texture." << std::endl;
-        glfwTerminate(); return -1;
-    }
 
-    setupMazeGeometryVAOs();
-    setupWindowVAO();
+    setupMazeGeometry(); // <-- NUOVA CHIAMATA
+    //setupMazeGeometryVAOs();
 
-    Shader mazeShader("spot_light.vs", "spot_light.fs");
-    Shader lampShader("lamp.vs", "lamp.fs");
-    Shader windowShader("blending.vs", "blending.fs");
 
-    // --- MODIFICA: Creazione shader per il menu ---
-    Shader menuShader("menu.vs", "menu.fs");
+
+    // Setup VAO e VBO per il filo di Arianna
+
+    glGenVertexArrays(1, &hintVAO);
+
+    glGenBuffers(1, &hintVBO);
+
+    glBindVertexArray(hintVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, hintVBO);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * MAP_SIZE_ROWS * MAP_SIZE_COLS, nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+
+
+
     menuShader.use();
+
     menuShader.setInt("menuTexture", 0);
 
-    mazeShader.use();
-    mazeShader.setInt("material.diffuse", 0);
-    mazeShader.setInt("material.specular", 1);
-    mazeShader.setFloat("material.shininess", mazeShininess);
-    windowShader.use();
-    windowShader.setInt("texture1", 0);
 
-    // Musica menu
-    if (mainTheme) {
-        SoundEngine->play2D(mainTheme, true);
-    }
+
+    mazeShader.use();
+
+    mazeShader.setInt("material.diffuse", 0);
+
+    mazeShader.setInt("material.specular", 1);
+
+    mazeShader.setInt("material.normalMap", 2);
+
+    mazeShader.setFloat("material.shininess", mazeShininess);
+
+
+
+    if (mainTheme) SoundEngine->play2D(mainTheme, true);
+
+    // Inizializza il GameContext con i puntatori corretti
+
+    GameContext context = { &sword, &minotaur, &camera, &dungeonRooms };
+
+    glfwSetWindowUserPointer(window, &context);
+
+
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+
+
+    // --- GAME LOOP ---
 
     while (!glfwWindowShouldClose(window)) {
+
         float currentFrame = static_cast<float>(glfwGetTime());
+
         deltaTime = currentFrame - lastFrame;
+
         lastFrame = currentFrame;
+
+        // --- CALCOLO FPS ---
+        timeSinceLastUpdate += deltaTime;
+        frameCount++;
+        if (timeSinceLastUpdate >= 1.0f) { // Aggiorna una volta al secondo
+            fps = frameCount;
+            frameCount = 0;
+            timeSinceLastUpdate = 0.0f;
+        }
+
         processInput(window);
 
+
+
         glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // --- MODIFICA: Logica di rendering condizionale ---
-        if (isGameActive)
-        {
-            // --- INIZIO CODICE DI GIOCO ---
-            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-            glm::mat4 view = camera.GetViewMatrix();
+
+
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+        glm::mat4 view = camera.GetViewMatrix();
+
+        // --- NUOVO: AGGIORNA IL FRUSTUM AD OGNI FRAME ---
+        camera.UpdateFrustum(view, projection);
+
+
+        // Calcola l'intensitï¿½ della luce pulsante usando il tempo di gioco
+        float time = glfwGetTime();
+        // La funzione sin() oscilla tra -1 e 1. La mappiamo nell'intervallo [0.5, 1.0]
+        // in modo che la luce si attenui al 50% e torni al 100%, senza mai spegnersi.
+        // Il valore 5.0f controlla la velocitï¿½ del tremolio. Aumentalo per un effetto piï¿½ rapido.
+        float flickerIntensity = 0.75f + sin(time * 20.0f) * 0.25f;
+
+        // Calcola il colore diffuso aggiornato in base all'intensitï¿½
+        glm::vec3 flickeringDiffuse = spotLightDiffuse * flickerIntensity;
+
+        // --- LOGICA CAMERA SHAKE ---
+        if (cameraShakeTimer.IsActive()) {
+            float shakeAmount = 0.08f * (cameraShakeTimer.GetTime() / 0.3f); // 0.3f ï¿½ la durata
+            float offsetX = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
+            float offsetY = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
+            glm::mat4 shakeTransform = glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, offsetY, 0.0f) * shakeAmount);
+            view = shakeTransform * view; // Applica il tremore alla matrice di vista
+        }
+
+
+
+        switch (currentState) {
+
+        case GameState::MENU: {
+
+            glDisable(GL_DEPTH_TEST);
+
+            menuShader.use();
+
+            glActiveTexture(GL_TEXTURE0);
+
+            glBindTexture(GL_TEXTURE_2D, menuTexture);
+
+            glBindVertexArray(menuVAO);
+
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+
+            glEnable(GL_DEPTH_TEST);
+
+            break;
+
+        }
+
+        case GameState::PLAYING:
+
+        case GameState::GAME_OVER: {
+
+            if (currentState == GameState::PLAYING) {
+
+                sword.Update(deltaTime);
+
+                minotaur.Update(deltaTime, camera.Position);
+
+                for (auto& room : dungeonRooms) {
+
+                    room.Update(deltaTime, camera.Position);
+
+                }
+
+                if (showHint) {
+
+                    hintTimer -= deltaTime;
+
+                    if (hintTimer <= 0.0f) {
+
+                        showHint = false;
+
+                        hintTimer = 0.0f;
+
+                    }
+
+                }
+
+                // AGGIUNGI QUESTA RIGA:
+                if (harpyJumpScare) {
+                    harpyJumpScare->Update(deltaTime);
+                }
+
+                //-- - LOGICA JUMP SCARE-- -
+                    jumpScareCooldown.Update(deltaTime);
+                if (harpyJumpScare && !jumpScareCooldown.IsActive() && harpyJumpScare->currentState == JumpScare::State::INACTIVE) {
+                    // Possiamo controllare piï¿½ spesso, perchï¿½ molti tentativi saranno bloccati dai muri.
+                    if ((rand() % 200) == 0) {
+                        // 1. Calcola un punto direttamente di fronte alla telecamera
+                        const float jumpScareDistance = 8.0f; // Distanza a cui appare l'arpia. Puoi regolarla.
+                        glm::vec3 spawnPos = camera.Position + camera.Front * jumpScareDistance;
+
+                        // 2. Regola l'altezza per essere al livello degli occhi del giocatore
+                        spawnPos.y = camera.Position.y;
+
+                        // 3. CONTROLLO CRUCIALE: Attiva il jumpscare solo se il punto di spawn NON ï¿½ dentro un muro.
+                        if (!checkWallCollision(spawnPos)) {
+                            std::cout << "Jumpscare attivato con successo di fronte al giocatore!" << std::endl;
+                            harpyJumpScare->Trigger(spawnPos);
+                            if (scareSound) SoundEngine->play2D(scareSound, false);
+                            jumpScareCooldown.Start();
+                        }
+                    }
+                }
+
+
+                victoryMessageTimer.Update(deltaTime);
+
+                powerUpMessageTimer.Update(deltaTime);
+
+                // Aggiorna le particelle SOLO per le fiaccole visibili
+                for (size_t i = 0; i < wallSconces.size(); ++i) {
+                    WallSconce& sconce = wallSconces[i];
+
+                    // Calcola la distanza tra il giocatore e la fiaccola
+                    float distanceToSconce = glm::distance(camera.Position, sconce.position);
+
+                    // Aggiorna il sistema di particelle se il giocatore ï¿½ abbastanza vicino
+                    if (distanceToSconce < PARTICLE_ACTIVATION_RADIUS) {
+                        // Calcola la posizione della fiamma (come facevi prima)
+                        glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(sconce.rotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+                        glm::vec3 rotatedOffset = glm::vec3(rotationMatrix * glm::vec4(sconce.flameOffset, 1.0f));
+                        glm::vec3 firePosition = sconce.position + rotatedOffset;
+
+                        fireEmitters[i].Update(deltaTime, firePosition, 30);
+                    }
+                }
+
+                unlockMessageTimer.Update(deltaTime);
+                damageEffectTimer.Update(deltaTime); 
+                cameraShakeTimer.Update(deltaTime); 
+
+            }
+
+            // OSCURAMENTO AMBIENTE DURANTE JUMP SCARE
+            glm::vec3 currentAmbient = spotLightAmbient;
+            if (harpyJumpScare && harpyJumpScare->currentState != JumpScare::State::INACTIVE) {
+                currentAmbient *= 0.4f; // Riduci la luce ambientale all'20%
+            }
+
 
             mazeShader.use();
+
             mazeShader.setMat4("projection", projection);
+
             mazeShader.setMat4("view", view);
+
             mazeShader.setVec3("viewPos", camera.Position);
+
             mazeShader.setInt("activeSpotLights", NR_SPOT_LIGHTS);
+
             for (int i = 0; i < NR_SPOT_LIGHTS; ++i) {
                 std::string lightUni = "spotLights[" + std::to_string(i) + "]";
                 mazeShader.setVec3(lightUni + ".position", spotLightPositions[i]);
@@ -280,309 +928,1805 @@ int main() {
                 mazeShader.setFloat(lightUni + ".cutOff", spotLightCutOff);
                 mazeShader.setFloat(lightUni + ".outerCutOff", spotLightOuterCutOff);
                 mazeShader.setVec3(lightUni + ".ambient", spotLightAmbient);
-                mazeShader.setVec3(lightUni + ".diffuse", spotLightDiffuse);
+                mazeShader.setVec3(lightUni + ".diffuse", flickeringDiffuse);
                 mazeShader.setVec3(lightUni + ".specular", spotLightSpecular);
                 mazeShader.setFloat(lightUni + ".constant", spotLightConstant);
                 mazeShader.setFloat(lightUni + ".linear", spotLightLinear);
                 mazeShader.setFloat(lightUni + ".quadratic", spotLightQuadratic);
             }
 
-            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, textureFloor);
-            glBindVertexArray(VAO_floor);
-            mazeShader.setMat4("model", glm::mat4(1.0f));
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            //Illuminazione particellare
+            mazeShader.setInt("activePointLights", activePointLights);
+            for (int i = 0; i < activePointLights; i++) {
+                std::string name = "pointLights[" + std::to_string(i) + "]";
+                mazeShader.setVec3(name + ".position", pointLightPositions[i]);
+                mazeShader.setVec3(name + ".ambient", 0.05f, 0.05f, 0.05f);
+                mazeShader.setVec3(name + ".diffuse", 0.8f, 0.6f, 0.2f);
+                mazeShader.setVec3(name + ".specular", 1.0f, 1.0f, 1.0f);
+                mazeShader.setFloat(name + ".constant", 1.0f);
+                mazeShader.setFloat(name + ".linear", 0.09f);
+                mazeShader.setFloat(name + ".quadratic", 0.032f);
+            }
 
-            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, textureCeiling);
-            glBindVertexArray(VAO_ceiling);
-            mazeShader.setMat4("model", glm::mat4(1.0f));
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, textureWall);
-            glBindVertexArray(VAO_walls);
-            for (int y = 0; y < MAZE_HEIGHT; ++y) {
-                for (int x = 0; x < MAZE_WIDTH; ++x) {
-                    if (maze[y][x].wall) {
-                        glm::mat4 model = glm::mat4(1.0f);
-                        model = glm::translate(model, glm::vec3(x * CELL_SIZE + CELL_SIZE / 2.0f, WALL_HEIGHT / 2.0f, y * CELL_SIZE + CELL_SIZE / 2.0f));
-                        model = glm::scale(model, glm::vec3(CELL_SIZE, WALL_HEIGHT, CELL_SIZE));
-                        mazeShader.setMat4("model", model);
-                        glDrawArrays(GL_TRIANGLES, 0, 36);
-                    }
+            // --- DISEGNA IL PAVIMENTO (CON CULLING) ---
+            glm::vec3 floorCenter = glm::vec3((MAZE_WIDTH * CELL_SIZE) / 2.0f, 0.0f, (MAZE_HEIGHT * CELL_SIZE) / 2.0f);
+            glm::vec3 floorSize = glm::vec3(MAZE_WIDTH * CELL_SIZE, 0.1f, MAZE_HEIGHT * CELL_SIZE);
+
+            if (CheckBoxInFrustum(camera, floorCenter, floorSize)) {
+                // RENDER FLOOR
+                glActiveTexture(GL_TEXTURE0);
+
+                glBindTexture(GL_TEXTURE_2D, textureFloor);
+
+                glActiveTexture(GL_TEXTURE2);
+
+                glBindTexture(GL_TEXTURE_2D, textureNormalFloor);
+
+                glBindVertexArray(VAO_floor);
+
+                mazeShader.setMat4("model", glm::mat4(1.0f));
+
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
+
+
+            // --- DISEGNA IL SOFFITTO (CON CULLING) ---
+            glm::vec3 ceilingCenter = glm::vec3((MAZE_WIDTH * CELL_SIZE) / 2.0f, WALL_HEIGHT, (MAZE_HEIGHT * CELL_SIZE) / 2.0f);
+            glm::vec3 ceilingSize = glm::vec3(MAZE_WIDTH * CELL_SIZE, 0.1f, MAZE_HEIGHT * CELL_SIZE);
+
+            if (CheckBoxInFrustum(camera, ceilingCenter, ceilingSize)) {
+                // RENDER CEILING
+                glActiveTexture(GL_TEXTURE0);
+
+                glBindTexture(GL_TEXTURE_2D, textureCeiling);
+
+                glActiveTexture(GL_TEXTURE2);
+
+                glBindTexture(GL_TEXTURE_2D, textureNormalCeiling);
+
+                glBindVertexArray(VAO_ceiling);
+
+                mazeShader.setMat4("model", glm::mat4(1.0f));
+
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
+
+
+            // RENDER WALLS
+            glActiveTexture(GL_TEXTURE0);
+
+            glBindTexture(GL_TEXTURE_2D, textureWall);
+
+            glActiveTexture(GL_TEXTURE2);
+
+            glBindTexture(GL_TEXTURE_2D, textureNormalWall);
+
+            //glBindVertexArray(VAO_walls);
+
+
+            // // RENDER ARIADNE'S THREAD (HINT) 
+            //if (showHint && !hintPath.empty()) {
+
+            //    glDepthMask(GL_FALSE);
+
+            //    hintShader->use();
+
+            //    hintShader->setMat4("projection", projection);
+
+            //    hintShader->setMat4("view", view);
+
+            //    hintShader->setMat4("model", glm::mat4(1.0f));
+
+            //    glBindVertexArray(hintVAO);
+
+            //    glDrawArrays(GL_LINE_STRIP, 0, hintPath.size());
+
+            //    glBindVertexArray(0);
+
+            //    glDepthMask(GL_TRUE);
+
+            //}
+
+            for (const auto& chunk : mazeChunks) {
+                // Controlla la visibilitï¿½ dell'INTERO CHUNK
+                if (CheckBoxInFrustum(camera, chunk.center, chunk.size)) {
+                    glBindVertexArray(chunk.VAO);
+                    // Disegna tutti i muri del chunk con una sola chiamata
+                    glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
+                    glBindVertexArray(0);
                 }
             }
-            glBindVertexArray(0);
+            
 
-            lampShader.use();
-            lampShader.setMat4("projection", projection);
-            lampShader.setMat4("view", view);
-            glBindVertexArray(VAO_lamp);
-            for (int i = 0; i < NR_SPOT_LIGHTS; ++i) {
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, spotLightPositions[i]);
-                model = glm::scale(model, glm::vec3(0.15f));
-                lampShader.setMat4("model", model);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-            }
-            glBindVertexArray(0);
-
-            std::map<float, glm::vec3> sortedWindows;
-            for (const auto& pos : windowPositions) {
-                float distance = glm::length(camera.Position - pos);
-                sortedWindows[distance] = pos;
+            // -- - DISEGNA L'ARPIA ---
+            if (harpyJumpScare) {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glDepthMask(GL_FALSE);  // Disabilita scrittura depth buffer
+                harpyJumpScare->Draw(modelShader, camera, projection, view);
+                glDepthMask(GL_TRUE);
+                glDisable(GL_BLEND);
             }
 
-            windowShader.use();
-            windowShader.setMat4("projection", projection);
-            windowShader.setMat4("view", view);
-            glBindVertexArray(VAO_window);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, textureWindow);
 
-            for (auto it = sortedWindows.rbegin(); it != sortedWindows.rend(); ++it) {
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, it->second);
-                model = glm::scale(model, glm::vec3(CELL_SIZE * 0.8f, WALL_HEIGHT * 0.8f, 1.0f));
-                windowShader.setMat4("model", model);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
+            if (minotaur.currentState != Minotaur::State::FINISHED) {
+
+                animModelShader.use();
+
+                animModelShader.setMat4("projection", projection);
+
+                animModelShader.setMat4("view", view);
+
+                minotaur.Draw(animModelShader);
+
             }
-            glBindVertexArray(0);
+
+
+
+            // --- Render delle casse ---
+
+            modelShader.use();
+
+            modelShader.setMat4("projection", projection);
+
+            modelShader.setMat4("view", view);
+
+
+            for (auto& room : dungeonRooms) {
+
+                // Disegna la cassa della stanza
+
+                modelShader.use(); 
+
+                modelShader.setMat4("projection", projection);
+
+                modelShader.setMat4("view", view);
+
+                modelShader.setVec3("viewPos", camera.Position);
+
+                if (CheckBoxInFrustum(camera, room.chest.position, glm::vec3(1.0f))) {
+
+                    room.chest.Draw(modelShader);
+                }
+
+
+                // Disegna i nemici della stanza
+
+                modelShader.use(); 
+
+                modelShader.setMat4("projection", projection);
+
+                modelShader.setMat4("view", view);
+
+                modelShader.setVec3("viewPos", camera.Position);
+
+                for (auto& enemy : room.enemies) {
+
+                    if (CheckBoxInFrustum(camera, enemy.position, glm::vec3(1.0f, 2.0f, 1.0f))) {
+
+                        enemy.Draw(modelShader);
+                    }
+
+                }
+
+            }
+            // --- RENDER DELLE STATUE CON CULLING ---
+            modelShader.use();
+            for (size_t i = 0; i < statues.size(); ++i) {
+                glm::vec3 statuePos = glm::vec3(statueMatrices[i][3]);
+                glm::vec3 statueSize = glm::vec3(2.0f, 4.0f, 2.0f);
+
+                if (CheckBoxInFrustum(camera, statuePos, statueSize)) {
+                    modelShader.setMat4("model", statueMatrices[i]);
+                    statues[i].Draw(modelShader);
+                }
+            }
+
+
+
+            if (currentState == GameState::PLAYING) {
+
+                sword.Draw(modelShader, camera, projection, view);
+
+            }
+
+
 
             glDisable(GL_DEPTH_TEST);
-            std::string itemsInfo = "Oggetti Raccolti: " + std::to_string(itemsFound) + "/3";
-            RenderText(itemsInfo.c_str(), 10.0f, SCR_HEIGHT - 40.0f, 0.7f, glm::vec3(1.0, 1.0, 0.0));
+
+            // RENDER ARIADNE'S THREAD (HINT)
+            if (showHint && !hintPath.empty()) {
+                // Disabilita temporaneamente il depth test per assicurarsi che il filo sia sempre visibile
+                glDisable(GL_DEPTH_TEST);
+
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                hintShader->use();
+                hintShader->setMat4("projection", projection);
+                hintShader->setMat4("view", view);
+                hintShader->setMat4("model", glm::mat4(1.0f));
+ 
+                glLineWidth(3.0f);
+
+                glBindVertexArray(hintVAO);
+                glDrawArrays(GL_LINE_STRIP, 0, hintPath.size());
+                glBindVertexArray(0);
+
+                glDisable(GL_BLEND);
+                glEnable(GL_DEPTH_TEST); // Riabilita per il resto del rendering
+            }
+
+
+
+            // --- NUOVO: Disegna il contatore FPS ---
+            if (showFPS) {
+                std::string fpsText = "FPS: " + std::to_string(fps);
+                RenderText(fpsText.c_str(), SCR_WIDTH - 120.0f, SCR_HEIGHT - 30.0f, 0.5f, glm::vec3(0.0, 1.0, 0.0f));
+            }
+
+            RenderText(("Salute: " + std::to_string(static_cast<int>(playerHealth))).c_str(), 10.0f, SCR_HEIGHT - 60.0f, 0.7f, glm::vec3(0.5, 1.0, 0.5f));
+
+
+            if (unlockMessageTimer.IsActive()) {
+                RenderText("HAI SBLOCCATO IL FILO CHE CONDUCE ALLA LIBERTA'. PREMI H PER UTILIZZARLO",
+                    SCR_WIDTH / 2.0f - 240.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.84, 0.0)); // Colore oro
+            }
+
+
+            if (damageEffectTimer.IsActive()) {
+                glDisable(GL_DEPTH_TEST); // Disabilita il test di profonditï¿½ per disegnarlo sopra a tutto
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                menuShader.use(); 
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, damageOverlayTexture);
+
+                glBindVertexArray(menuVAO);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+
+                glEnable(GL_DEPTH_TEST); // Riabilita il test di profonditï¿½
+            }
+
+
+            // --- STAMINA ---
+
+            std::string staminaBar = "Stamina: [";
+
+            int barWidth = 20;
+
+            int filledWidth = static_cast<int>((playerStamina / PLAYER_MAX_STAMINA) * barWidth);
+
+            for (int i = 0; i < barWidth; ++i) {
+
+                staminaBar += (i < filledWidth) ? '|' : ' ';
+
+            }
+
+            staminaBar += "]";
+
+            RenderText(staminaBar.c_str(), 10.0f, SCR_HEIGHT - 75.0f, 0.6f, glm::vec3(0.9, 0.9, 0.2));
+
+
+
+            // --- BARRA VITA MINOTAURO ---
+
+            if (victoryMessageTimer.IsActive()) {
+
+                RenderText("Minotauro Sconfitto", SCR_WIDTH / 2.0f - 120.0f, SCR_HEIGHT - 50.0f, 0.8f, glm::vec3(0.5, 1.0, 0.5f));
+
+            }
+
+
+
+            else if (minotaur.health > 0) {
+
+
+
+                float distanceToMino = glm::distance(camera.Position, minotaur.position);
+
+
+
+                glm::vec3 toMinoDir = glm::normalize(minotaur.position - camera.Position);
+
+
+
+                float dotProduct = glm::dot(camera.Front, toMinoDir);
+
+
+
+                if (distanceToMino < minotaur.NOTICE_RANGE && dotProduct > 0.3f) {
+
+
+
+                    std::string minoHealthBar = "Minotauro: [";
+
+
+
+                    int minoBarWidth = 25;
+
+
+
+                    int minoFilledWidth = static_cast<int>((minotaur.health / 100.0f) * minoBarWidth);
+
+
+
+                    for (int i = 0; i < minoBarWidth; ++i) {
+
+
+
+                        minoHealthBar += (i < minoFilledWidth) ? '#' : ' ';
+
+
+
+                    }
+
+
+
+                    minoHealthBar += "]";
+
+
+
+                    RenderText(minoHealthBar.c_str(), 800.0f, SCR_HEIGHT - 90.0f, 0.7f, glm::vec3(1.0, 0.3, 0.3));
+
+                }
+
+
+
+            }
+
+
+
+
+
+            bool canOpenChest = false;
+
+            bool chestIsLocked = false;
+
+            if (currentState == GameState::PLAYING) {
+
+                for (const auto& room : dungeonRooms) {
+
+                    if (!room.chest.isCollected && glm::distance(camera.Position, room.chest.position) < 2.5f) {
+
+                        canOpenChest = true;
+
+                        if (room.chest.isLocked) {
+
+                            chestIsLocked = true;
+
+                        }
+
+                        break;
+
+                    }
+
+                }
+
+            }
+
+            if (canOpenChest) {
+
+                if (chestIsLocked) {
+
+                    RenderText("La cassa e' bloccata, sconfiggi i guardiani!", SCR_WIDTH / 2.0f - 220.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.5, 0.0));
+
+                }
+
+                else {
+
+                    RenderText("Apri la cassa (E)", SCR_WIDTH / 2.0f - 100.0f, SCR_HEIGHT / 2.0f - 30.0f, 0.7f, glm::vec3(1.0f));
+
+                }
+
+            }
+
+
+
+            if (powerUpMessageTimer.IsActive()) {
+
+                RenderText(lastPowerUpMessage.c_str(), SCR_WIDTH / 2.0f - 200.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(1.0, 0.5, 0.0));
+
+            }
+
+
+
+            // --- LOGICA PER BARRE VITA NEMICI VISIBILI ---
+
+            float healthBarYOffset = SCR_HEIGHT - 40.0f;
+
+            int visibleEnemyCount = 0;
+
+
+
+            // Prima, identifica quali nemici sono visibili
+
+            std::vector<const Enemy*> visibleEnemies;
+
+            if (currentState == GameState::PLAYING) {
+
+                for (const auto& room : dungeonRooms) {
+
+                    if (room.state == DungeonRoom::RoomState::ACTIVE) {
+
+                        for (const auto& enemy : room.enemies) {
+
+                            if (enemy.health > 0) {
+
+                                float distanceToEnemy = glm::distance(camera.Position, enemy.position);
+
+                                glm::vec3 toEnemyDir = glm::normalize(enemy.position - camera.Position);
+
+                                float dotProduct = glm::dot(camera.Front, toEnemyDir);
+
+
+
+                                // Aggiungi alla lista solo se ï¿½ vicino e di fronte
+
+                                if (distanceToEnemy < enemy.NOTICE_RANGE && dotProduct > 0.4f) {
+
+                                    visibleEnemies.push_back(&enemy);
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+
+
+            // barra per ogni nemico nella lista dei visibili
+
+            if (!visibleEnemies.empty()) {
+
+                RenderText("Guardiani:", SCR_WIDTH - 250.0f, healthBarYOffset, 0.6f, glm::vec3(1.0, 0.5, 0.5));
+
+                healthBarYOffset -= 25.0f;
+
+
+
+                for (const auto* enemyPtr : visibleEnemies) {
+
+                    std::string enemyHealthBar = "[";
+
+                    int barWidth = 15;
+
+                    int filledWidth = static_cast<int>((enemyPtr->health / 50.0f) * barWidth);
+
+                    for (int i = 0; i < barWidth; ++i) {
+
+                        enemyHealthBar += (i < filledWidth) ? '#' : ' ';
+
+                    }
+
+                    enemyHealthBar += "]";
+
+
+
+                    RenderText(enemyHealthBar.c_str(), SCR_WIDTH - 250.0f, healthBarYOffset, 0.5f, glm::vec3(0.9, 0.9, 0.9));
+
+                    healthBarYOffset -= 20.0f;
+
+                }
+
+            }
+
+
+
+
+
+
+
+            if (currentState == GameState::GAME_OVER) {
+
+                RenderText("SEI MORTO", SCR_WIDTH / 2.0f - 150.0f, SCR_HEIGHT / 2.0f, 2.0f, glm::vec3(1.0, 0.1, 0.1));
+
+                RenderText("Premi INVIO per ricominciare o ESC per uscire", SCR_WIDTH / 2.0f - 220.0f, SCR_HEIGHT / 2.0f - 50.0f, 0.7f, glm::vec3(0.8, 0.8, 0.8));
+
+            }
+
             glEnable(GL_DEPTH_TEST);
-            // --- FINE CODICE DI GIOCO ---
-        }
-        else
-        {
-            // --- CODICE DEL MENU ---
-            glDisable(GL_DEPTH_TEST); // Il menu non ha bisogno del depth test
-            menuShader.use();
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, menuTexture);
-            glBindVertexArray(menuVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glBindVertexArray(0);
-            glEnable(GL_DEPTH_TEST);
+
+            break;
+
         }
 
+        case GameState::VICTORY: {
+
+            glDisable(GL_DEPTH_TEST);
+
+            menuShader.use();
+
+            glActiveTexture(GL_TEXTURE0);
+
+            glBindTexture(GL_TEXTURE_2D, endMenuTexture);
+
+            glBindVertexArray(menuVAO);
+
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+
+            glEnable(GL_DEPTH_TEST);
+
+            break;
+
+        }
+
+        }
+
+        modelShader.use();
+        modelShader.setMat4("projection", projection);
+        modelShader.setMat4("view", view);
+        modelShader.setVec3("viewPos", camera.Position);
+        modelShader.setFloat("shininess", 32.0f);
+
+
+        for (int i = 0; i < NR_SPOT_LIGHTS; ++i) {
+            std::string lightUni = "spotLights[" + std::to_string(i) + "]";
+            modelShader.setVec3(lightUni + ".position", spotLightPositions[i]);
+            modelShader.setVec3(lightUni + ".direction", spotLightDirection);
+            modelShader.setFloat(lightUni + ".cutOff", spotLightCutOff);
+            modelShader.setFloat(lightUni + ".outerCutOff", spotLightOuterCutOff);
+            modelShader.setVec3(lightUni + ".ambient", spotLightAmbient);
+            modelShader.setVec3(lightUni + ".diffuse", spotLightDiffuse);
+            modelShader.setVec3(lightUni + ".specular", spotLightSpecular);
+            modelShader.setFloat(lightUni + ".constant", spotLightConstant);
+            modelShader.setFloat(lightUni + ".linear", spotLightLinear);
+            modelShader.setFloat(lightUni + ".quadratic", spotLightQuadratic);
+        }
+
+        // Disegna le fiaccole e le loro fiamme (solo se visibili)
+        // PASSO 1: Disegna tutti gli oggetti solidi (le fiaccole)
+        for (size_t i = 0; i < wallSconces.size(); ++i) {
+            WallSconce& sconce = wallSconces[i];
+
+            // Disegna il modello 3D della fiaccola solo se ï¿½ visibile nella telecamera
+            glm::vec3 sconceSize = glm::vec3(1.0f, 2.5f, 1.0f);
+            if (CheckBoxInFrustum(camera, sconce.position, sconceSize)) {
+                sconce.Draw(modelShader);
+            }
+        }
+
+        // PASSO 2: Disegna tutti gli oggetti trasparenti (le particelle della fiamma)
+        for (size_t i = 0; i < wallSconces.size(); ++i) {
+            // Disegna le particelle della fiamma solo se il giocatore ï¿½ nel raggio di attivazione
+            float distanceToSconce = glm::distance(camera.Position, wallSconces[i].position);
+            if (distanceToSconce < PARTICLE_ACTIVATION_RADIUS) {
+                fireEmitters[i].Draw(view, projection);
+            }
+        }
+
+
+
         glfwSwapBuffers(window);
+
         glfwPollEvents();
+
     }
+
+
 
     SoundEngine->drop();
 
-    glDeleteVertexArrays(1, &VAO_walls);
+    delete hintShader;
+
+    //glDeleteVertexArrays(1, &VAO_walls);
+    for (auto& chunk : mazeChunks) {
+        glDeleteVertexArrays(1, &chunk.VAO);
+        glDeleteBuffers(1, &chunk.VBO);
+    }
+
     glDeleteVertexArrays(1, &VAO_floor);
+
     glDeleteVertexArrays(1, &VAO_ceiling);
+
     glDeleteVertexArrays(1, &VAO_lamp);
-    glDeleteVertexArrays(1, &VAO_window);
-    glDeleteBuffers(1, &VBO_cube_lit);
-    glDeleteBuffers(1, &VBO_window);
-    glDeleteTextures(1, &textureWall);
-    glDeleteTextures(1, &textureFloor);
-    glDeleteTextures(1, &textureCeiling);
-   // glDeleteTextures(1, &textureSpecularMaze);
-    glDeleteTextures(1, &textureWindow);
-    // --- MODIFICA: Pulizia risorse menu ---
+
     glDeleteVertexArrays(1, &menuVAO);
+
+    glDeleteVertexArrays(1, &hintVAO);
+
+    glDeleteBuffers(1, &VBO_cube_lit);
+
     glDeleteBuffers(1, &menuVBO);
+
+    glDeleteBuffers(1, &hintVBO);
+
+    glDeleteTextures(1, &textureWall);
+
+    glDeleteTextures(1, &textureFloor);
+
+    glDeleteTextures(1, &textureCeiling);
+
+    glDeleteTextures(1, &textureNormalWall);
+
+    glDeleteTextures(1, &textureNormalFloor);
+
+    glDeleteTextures(1, &textureNormalCeiling);
+
     glDeleteTextures(1, &menuTexture);
 
+    glDeleteTextures(1, &endMenuTexture);
+
+
+
     glfwTerminate();
+
     return 0;
+
 }
+
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+
     glViewport(0, 0, width, height);
+
 }
+
+
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
-    // --- MODIFICA: Il mouse muove la camera solo se il gioco è attivo ---
-    if (!isGameActive) {
-        return;
-    }
+
+    if (currentState != GameState::PLAYING) return;
+
+
 
     float xpos = static_cast<float>(xposIn);
+
     float ypos = static_cast<float>(yposIn);
+
     if (firstMouse) {
+
         lastX = xpos;
+
         lastY = ypos;
+
         firstMouse = false;
+
     }
+
     float xoffset = xpos - lastX;
+
     float yoffset = lastY - ypos;
+
     lastX = xpos;
+
     lastY = ypos;
+
     camera.ProcessMouseMovement(xoffset, yoffset);
+
 }
+
+
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    // --- MODIFICA: Lo scroll funziona solo se il gioco è attivo ---
-    if (isGameActive)
+
+    if (currentState == GameState::PLAYING)
+
         camera.ProcessMouseScroll(static_cast<float>(yoffset));
+
 }
+
+
+
+void PlayerTakeDamage(float damage) {
+
+    if (playerHealth > 0) {
+
+        playerHealth -= damage;
+
+        if (playerHealth < 0) playerHealth = 0;
+
+        damageEffectTimer.Start();
+        cameraShakeTimer.Start(); 
+        if (playerHurtSound) SoundEngine->play2D(playerHurtSound, false);
+
+        std::cout << "Player health: " << playerHealth << std::endl;
+
+    }
+
+}
+
+
+
+
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+
+    if (currentState != GameState::PLAYING) return;
+
+
+
+    GameContext* context = static_cast<GameContext*>(glfwGetWindowUserPointer(window));
+
+    if (!context) return;
+
+
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+
+        context->sword->Attack();
+
+        if (attackSound) SoundEngine->play2D(attackSound, false);
+
+
+
+        const float SWORD_ATTACK_RANGE = 3.5f;
+
+
+
+        // Controlla se il colpo raggiunge il Minotauro
+
+        if (context->minotaur->health > 0 && glm::distance(context->camera->Position, context->minotaur->position) < SWORD_ATTACK_RANGE) {
+
+            bool minotaurWasAlive = context->minotaur->health > 0;
+
+            context->minotaur->TakeDamage(playerAttackDamage);
+
+
+
+            if (context->minotaur->health > 0) {
+
+                if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
+
+            }
+
+            else if (minotaurWasAlive) {
+
+                if (minotaurDeathSound) SoundEngine->play2D(minotaurDeathSound, false);
+
+                victoryMessageTimer.Start();
+                // Sblocca il filo di Arianna e avvia il timer del messaggio
+                ariadneThreadUnlocked = true;
+                unlockMessageTimer.Start();
+
+            }
+
+        }
+
+
+
+        
+
+        for (auto& room : *context->dungeonRooms) {
+
+            // Controlla i nemici solo se la stanza ï¿½ attiva
+
+            if (room.state == DungeonRoom::RoomState::ACTIVE) {
+
+                for (auto& enemy : room.enemies) {
+
+                    // Controlla solo i nemici vivi e nel raggio d'azione
+
+                    if (enemy.health > 0 && glm::distance(context->camera->Position, enemy.position) < SWORD_ATTACK_RANGE) {
+
+                        enemy.TakeDamage(playerAttackDamage);
+
+                        std::cout << "Colpito guardiano! Salute rimanente: " << enemy.health << std::endl;
+
+
+
+                        // Puoi usare lo stesso suono di colpo o uno diverso
+
+                        if (minotaurHitSound) SoundEngine->play2D(minotaurHitSound, false);
+
+
+
+                        // Se il nemico muore, potresti far partire un suono di morte specifico
+
+                        if (enemy.health <= 0) {
+
+                            std::cout << "Guardiano sconfitto!" << std::endl;
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+
+void ResetGame(Camera& cam, Minotaur& minotaur) {
+
+    std::cout << "--- GAME RESET ---" << std::endl;
+
+    playerHealth = PLAYER_MAX_HEALTH;
+
+    playerStamina = PLAYER_MAX_STAMINA;
+
+    playerAttackDamage = 50.0f; 
+
+
+
+    cam.Reset();
+
+    minotaur.Reset();
+
+
+
+    // Ricarica le casse per la nuova partita
+
+    glm::vec3 minoStart;
+
+    loadLevelData(minoStart);
+
+
+
+    // Resetta ogni stanza dungeon (che a sua volta resetta casse e nemici)
+
+    for (auto& room : dungeonRooms) {
+
+        room.Reset();
+
+    }
+
+
+
+    SoundEngine->stopAllSounds();
+
+    if (mainTheme) SoundEngine->play2D(mainTheme, true);
+
+
+
+    firstMouse = true;
+
+    hintPath.clear();
+
+    hintTimer = 0.0f;
+
+    victoryMessageTimer.Stop();
+
+    powerUpMessageTimer.Stop();
+
+    ariadneThreadUnlocked = false;
+    unlockMessageTimer.Stop();
+
+}
+
+
+
+void FindPathForHint(glm::vec2 start, glm::vec2 target, std::vector<glm::vec3>& path) {
+
+    path.clear();
+
+    int width = MAZE_WIDTH;
+
+    int height = MAZE_HEIGHT;
+
+
+
+    if (start.x < 0 || start.x >= width || start.y < 0 || start.y >= height ||
+
+        target.x < 0 || target.x >= width || target.y < 0 || target.y >= height ||
+
+        initial_maze_map[static_cast<int>(target.y)][static_cast<int>(target.x)] == 1) {
+
+        return;
+
+    }
+
+
+
+    std::priority_queue<AStarNode, std::vector<AStarNode>, std::greater<AStarNode>> open_set;
+
+    std::map<int, glm::vec2> parent;
+
+    std::map<int, int> g_cost;
+
+
+
+    for (int y = 0; y < height; ++y) {
+
+        for (int x = 0; x < width; ++x) {
+
+            g_cost[y * width + x] = std::numeric_limits<int>::max();
+
+        }
+
+    }
+
+
+
+    open_set.push({ 0, start });
+
+    g_cost[static_cast<int>(start.y) * width + static_cast<int>(start.x)] = 0;
+
+
+
+    int moves[4][2] = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
+
+    bool pathFound = false;
+
+
+
+    while (!open_set.empty()) {
+
+        AStarNode current_node = open_set.top();
+
+        glm::vec2 current = current_node.position;
+
+        open_set.pop();
+
+
+
+        if (current.x == target.x && current.y == target.y) {
+
+            pathFound = true;
+
+            break;
+
+        }
+
+
+
+        for (auto& move : moves) {
+
+            glm::vec2 next = { current.x + move[0], current.y + move[1] };
+
+            int nextY = static_cast<int>(next.y);
+
+            int nextX = static_cast<int>(next.x);
+
+
+
+            if (nextX >= 0 && nextX < width && nextY >= 0 && nextY < height && initial_maze_map[nextY][nextX] != 1) {
+
+                int move_cost = 1;
+
+                for (auto& check_move : moves) {
+
+                    int checkX = nextX + check_move[0];
+
+                    int checkY = nextY + check_move[1];
+
+                    if (checkX >= 0 && checkX < width && checkY >= 0 && checkY < height && initial_maze_map[checkY][checkX] == 1) {
+
+                        move_cost = 15;
+
+                        break;
+
+                    }
+
+                }
+
+                int new_g_cost = g_cost[static_cast<int>(current.y) * width + static_cast<int>(current.x)] + move_cost;
+
+                if (new_g_cost < g_cost[nextY * width + nextX]) {
+
+                    g_cost[nextY * width + nextX] = new_g_cost;
+
+                    int heuristic = abs(nextX - static_cast<int>(target.x)) + abs(nextY - static_cast<int>(target.y));
+
+                    int f_cost = new_g_cost + heuristic;
+
+                    open_set.push({ f_cost, next });
+
+                    parent[nextY * width + nextX] = current;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+
+    if (pathFound) {
+
+        std::vector<glm::vec3> temp_path;
+
+        glm::vec2 current = target;
+
+        while (current.x != start.x || current.y != start.y) {
+
+            temp_path.push_back(glm::vec3(current.x * CELL_SIZE + CELL_SIZE / 2.0f, 0.05f, current.y * CELL_SIZE + CELL_SIZE / 2.0f));
+
+            int currentIndex = static_cast<int>(current.y) * width + static_cast<int>(current.x);
+
+            if (parent.find(currentIndex) == parent.end()) break;
+
+            current = parent[currentIndex];
+
+        }
+
+        temp_path.push_back(glm::vec3(start.x * CELL_SIZE + CELL_SIZE / 2.0f, 0.05f, start.y * CELL_SIZE + CELL_SIZE / 2.0f));
+
+        std::reverse(temp_path.begin(), temp_path.end());
+
+        path = temp_path;
+
+    }
+
+}
+
+
+
+
 
 void processInput(GLFWwindow* window) {
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+
         glfwSetWindowShouldClose(window, true);
 
-    // --- MODIFICA: Logica di input separata per menu e gioco ---
-    if (!isGameActive) {
-        // Siamo nel menu, aspettiamo solo INVIO
-        static bool enterPressedLastFrame = false;
-        bool enterIsPressed = glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS;
 
-        if (enterIsPressed && !enterPressedLastFrame) {
-            isGameActive = true;
-            // Nascondi il cursore e catturalo per il gioco
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            firstMouse = true; // Resetta il firstMouse per evitare scatti della camera
+
+    GameContext* context = static_cast<GameContext*>(glfwGetWindowUserPointer(window));
+
+    if (!context) return;
+
+    Minotaur& minotaur = *context->minotaur;
+
+    Camera& camera = *context->camera;
+
+    std::vector<DungeonRoom>& rooms = *context->dungeonRooms;
+
+
+
+    switch (currentState) {
+
+    case GameState::MENU:
+
+    case GameState::VICTORY:
+
+    case GameState::GAME_OVER: {
+
+        static float lastEnterPressTime = 0.0f;
+
+        if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+
+            if (glfwGetTime() - lastEnterPressTime > 0.5f) {
+
+                ResetGame(camera, minotaur);
+
+                currentState = GameState::PLAYING;
+
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+                lastEnterPressTime = static_cast<float>(glfwGetTime());
+
+            }
+
         }
-        enterPressedLastFrame = enterIsPressed;
+
+        break;
+
     }
-    else {
-        // Il gioco è attivo, gestisci i normali controlli
-        float desiredHeight = CAMERA_HEIGHT;
+
+
+
+    case GameState::PLAYING: {
+
+        if (playerHealth <= 0) {
+
+            currentState = GameState::GAME_OVER;
+
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+            SoundEngine->stopAllSounds();
+
+            break;
+
+        }
+
+
+
+        static bool e_key_pressed_debounce = false;
+
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS && !e_key_pressed_debounce) {
+
+            e_key_pressed_debounce = true;
+
+            for (auto& room : rooms) {
+
+                if (!room.chest.isCollected && glm::distance(camera.Position, room.chest.position) < 2.5f) {
+
+
+
+                    if (room.chest.Open()) {
+
+                        if (room.chest.powerUp == PowerUpType::HEALTH_BOOST) {
+
+                            playerHealth = PLAYER_MAX_HEALTH;
+
+                            lastPowerUpMessage = "Nettare degli Dei! Salute ripristinata!";
+
+                        }
+
+                        else if (room.chest.powerUp == PowerUpType::DAMAGE_BOOST) {
+
+                            playerAttackDamage += 20.0f;
+
+                            lastPowerUpMessage = "Furia di Ares! Danno aumentato a " + std::to_string(static_cast<int>(playerAttackDamage));
+
+
+
+
+
+                        }
+
+                        powerUpMessageTimer.Start();
+                        break;
+                    }
+
+                    break;
+
+                }
+
+            }
+
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_RELEASE) {
+
+            e_key_pressed_debounce = false;
+
+        }
+
+
+
+
+
+        if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS && ariadneThreadUnlocked) {
+
+            if (!showHint) {
+
+                showHint = true;
+
+                hintTimer = HINT_DURATION;
+
+                glm::vec2 startNode = { floor(camera.Position.x / CELL_SIZE), floor(camera.Position.z / CELL_SIZE) };
+
+                glm::vec2 endNode = { -1, -1 };
+
+                for (int y = 0; y < MAZE_HEIGHT; ++y) {
+
+                    for (int x = 0; x < MAZE_WIDTH; ++x) {
+
+                        if (initial_maze_map[y][x] == 3) {
+
+                            endNode = glm::vec2(x, y);
+
+                            break;
+
+                        }
+
+                    }
+
+                    if (endNode.x != -1) break;
+
+                }
+
+                if (endNode.x != -1) {
+
+                    FindPathForHint(startNode, endNode, hintPath);
+
+                    if (!hintPath.empty()) {
+
+                        glBindBuffer(GL_ARRAY_BUFFER, hintVBO);
+
+                        glBufferSubData(GL_ARRAY_BUFFER, 0, hintPath.size() * sizeof(glm::vec3), &hintPath[0]);
+
+                        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+                    }
+
+                }
+
+            }
+
+        }
+
+
+
+        // --- Logica per mostrare le coordinate nel prompt con il tasto 'P' ---
+
+        static bool p_key_pressed = false;
+
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !p_key_pressed) {
+
+            p_key_pressed = true;
+
+            // Stampa le coordinate direttamente sulla console
+
+            std::cout << "Posizione Giocatore -> X: " << camera.Position.x << ", Z: " << camera.Position.z << std::endl;
+
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE) {
+
+            p_key_pressed = false;
+
+        }
+
+        // --- NUOVA LOGICA PER IL TASTO F ---
+        static bool f_key_pressed = false;
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !f_key_pressed) {
+            f_key_pressed = true;
+            showFPS = !showFPS; // Inverte lo stato di visibilitï¿½
+        }
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE) {
+            f_key_pressed = false;
+        }
+
+
+
+        // --- INIZIO LOGICA STAMINA E SCATTO ---
+
+        bool isSprinting = false;
+
+        // Controlla se il tasto SHIFT ï¿½ premuto e se c'ï¿½ stamina residua
+
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && playerStamina > 0) {
+
+            isSprinting = true;
+
+            playerStamina -= SPRINT_DRAIN_RATE * deltaTime; // Consuma stamina
+
+            if (playerStamina < 0) playerStamina = 0;
+
+        }
+
+        else {
+
+            // Altrimenti, rigenera la stamina se non ï¿½ al massimo
+
+            if (playerStamina < PLAYER_MAX_STAMINA) {
+
+                playerStamina += STAMINA_REGEN_RATE * deltaTime;
+
+                if (playerStamina > PLAYER_MAX_STAMINA) playerStamina = PLAYER_MAX_STAMINA;
+
+            }
+
+        }
+
+
+
+        // Determina la velocitï¿½ di movimento attuale
+
+        const float NORMAL_SPEED = 3.5f;
+
+        const float SPRINT_SPEED = 6.5f;
+
+        float currentMoveSpeed = isSprinting ? SPRINT_SPEED : NORMAL_SPEED;
+
+        // --- FINE LOGICA STAMINA ---
+
+
+
+
+
         glm::vec3 originalPosition = camera.Position;
 
-        float moveSpeed = 3.5f;
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) camera.ProcessKeyboard(FORWARD, deltaTime * moveSpeed);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) camera.ProcessKeyboard(BACKWARD, deltaTime * moveSpeed);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) camera.ProcessKeyboard(LEFT, deltaTime * moveSpeed);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) camera.ProcessKeyboard(RIGHT, deltaTime * moveSpeed);
+        // float moveSpeed = 3.5f; // Rimossa la velocitï¿½ fissa
 
-        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
-            std::cout << "Pos Camera: X=" << camera.Position.x << " Z=" << camera.Position.z << std::endl;
-            int camGridX = static_cast<int>(floor(camera.Position.x / CELL_SIZE));
-            int camGridZ = static_cast<int>(floor(camera.Position.z / CELL_SIZE));
-            std::cout << "     -> Cella circa: (" << camGridX << ", " << camGridZ << ")" << std::endl;
+        glm::vec3 desiredMovement(0.0f);
+
+
+
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) desiredMovement += camera.Front;
+
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) desiredMovement -= camera.Front;
+
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) desiredMovement -= camera.Right;
+
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) desiredMovement += camera.Right;
+
+
+
+        if (glm::length(desiredMovement) > 0.0f) {
+
+            desiredMovement.y = 0.0f;
+
+            // Usa la nuova velocitï¿½ dinamica calcolata dalla logica della stamina
+
+            desiredMovement = glm::normalize(desiredMovement) * currentMoveSpeed * deltaTime;
+
         }
 
-        glm::vec3 attemptedPosition = camera.Position;
-        attemptedPosition.y = desiredHeight;
 
-        if (checkCollision(attemptedPosition)) {
-            glm::vec3 checkPosNoX = glm::vec3(originalPosition.x, desiredHeight, attemptedPosition.z);
-            if (!checkCollision(checkPosNoX)) {
-                camera.Position.x = originalPosition.x;
+
+        // La tua logica di collisione e movimento rimane invariata
+
+        if (glm::length(desiredMovement) > 0.0f) {
+
+            glm::vec3 finalPosition = originalPosition;
+
+            finalPosition.x += desiredMovement.x;
+
+            if (checkWallCollision(finalPosition)) {
+
+                finalPosition.x = originalPosition.x;
+
             }
+
+            finalPosition.z += desiredMovement.z;
+
+            if (checkWallCollision(finalPosition)) {
+
+                finalPosition.z = originalPosition.z;
+
+            }
+
+            camera.Position = finalPosition;
+
+        }
+
+
+
+        if (checkMinotaurCollision(camera.Position, minotaur)) {
+
+            glm::vec2 playerPos2D(camera.Position.x, camera.Position.z);
+
+            glm::vec2 minotaurPos2D(minotaur.position.x, minotaur.position.z);
+
+            float combinedRadius = CAMERA_COLLISION_RADIUS + minotaur.collisionRadius;
+
+            float distance2D = glm::distance(playerPos2D, minotaurPos2D);
+
+
+
+            if (distance2D < 0.0001f) {
+
+                camera.Position.x += combinedRadius;
+
+            }
+
             else {
-                glm::vec3 checkPosNoZ = glm::vec3(attemptedPosition.x, desiredHeight, originalPosition.z);
-                if (!checkCollision(checkPosNoZ)) {
-                    camera.Position.z = originalPosition.z;
-                }
-                else {
-                    camera.Position.x = originalPosition.x;
-                    camera.Position.z = originalPosition.z;
-                }
+
+                float penetrationDepth = combinedRadius - distance2D;
+
+                glm::vec2 pushDirection2D = glm::normalize(playerPos2D - minotaurPos2D);
+
+                glm::vec2 correction2D = pushDirection2D * (penetrationDepth + 0.01f);
+
+                camera.Position.x += correction2D.x;
+
+                camera.Position.z += correction2D.y;
+
             }
+
+            if (checkWallCollision(camera.Position)) {
+
+                camera.Position = originalPosition;
+
+            }
+
         }
-        camera.Position.y = desiredHeight;
+
+
+
+        if (originalPosition.z < EXIT_Z_THRESHOLD && camera.Position.z >= EXIT_Z_THRESHOLD) {
+
+            if (camera.Position.x > EXIT_X_MIN && camera.Position.x < EXIT_X_MAX) {
+
+                currentState = GameState::VICTORY;
+
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+                SoundEngine->stopAllSounds();
+
+            }
+
+        }
+
+
+
+        camera.Position.y = CAMERA_HEIGHT;
+
+        break;
+
     }
+
+    }
+
 }
 
-void loadMazeFromMap() {
+
+
+
+
+void loadLevelData(glm::vec3& minotaurSpawnPos) {
+    // Pulisce i dati delle partite precedenti
+    dungeonRooms.clear();
+    statues.clear();
+    statueMatrices.clear();
+    jumpScareLocations.clear();
+
+    // Vettore temporaneo per tutte le possibili posizioni vuote
+    std::vector<glm::vec3> emptySpaces;
+
+    minotaurSpawnPos = glm::vec3(-1.0f);
+
     for (int y = 0; y < MAZE_HEIGHT; ++y) {
         for (int x = 0; x < MAZE_WIDTH; ++x) {
-            maze[y][x].visited = false;
             maze[y][x].wall = (initial_maze_map[y][x] == 1);
+
+            float worldX = x * CELL_SIZE + CELL_SIZE / 2.0f;
+            float worldZ = y * CELL_SIZE + CELL_SIZE / 2.0f;
+
+            if (initial_maze_map[y][x] == 0) {
+                // Se la cella ï¿½ vuota, la aggiungiamo come possibile punto di spawn
+                emptySpaces.push_back(glm::vec3(worldX, 1.5f, worldZ));
+            }
+            else if (initial_maze_map[y][x] == 2) {
+                minotaurSpawnPos = glm::vec3(worldX, 0.0f, worldZ);
+            }
+            else if (initial_maze_map[y][x] == 4 && chestModel_ptr && enemyModel_ptr) {
+                glm::vec4 bounds = { (x - 2) * CELL_SIZE, (x + 3) * CELL_SIZE, (y - 2) * CELL_SIZE, (y + 3) * CELL_SIZE };
+                Chest chest(*chestModel_ptr, glm::vec3(worldX, 0.5f, worldZ));
+                std::vector<Enemy> enemies;
+                enemies.emplace_back(*enemyModel_ptr, glm::vec3(worldX - 1.5f, 0.0f, worldZ - 1.5f), bounds);
+                enemies.emplace_back(*enemyModel_ptr, glm::vec3(worldX + 1.5f, 0.0f, worldZ + 1.5f), bounds);
+                dungeonRooms.emplace_back(chest, std::move(enemies), bounds);
+            }
+            else if (initial_maze_map[y][x] == 5 && statueModel_ptr) {
+                statues.push_back(*statueModel_ptr);
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(worldX, 0.9f, worldZ));
+                model = glm::rotate(model, glm::radians(270.0f * (rand() % 4)), glm::vec3(0.0f, 1.0f, 0.0f));
+                model = glm::scale(model, glm::vec3(0.8f));
+                statueMatrices.push_back(model);
+            }
         }
+    }
+
+    // --- NUOVA LOGICA: SCEGLI PUNTI CASUALI PER IL JUMP SCARE ---
+    if (!emptySpaces.empty()) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(emptySpaces.begin(), emptySpaces.end(), g); // Mescola tutte le posizioni valide
+
+        // Scegliamo le prime N posizioni mescolate (es. 5 punti di spawn)
+        int numJumpScares = std::min((int)emptySpaces.size(), 5);
+        for (int i = 0; i < numJumpScares; ++i) {
+            jumpScareLocations.push_back(emptySpaces[i]);
+        }
+    }
+
+    if (minotaurSpawnPos.x < 0.0f) {
+        minotaurSpawnPos = glm::vec3(10.0f, 0.0f, 10.0f);
     }
 }
 
-bool checkCollision(glm::vec3 checkPos) {
-    if (checkPos.y < MIN_CAMERA_Y) return true;
-    if (checkPos.y > MAX_CAMERA_Y) return true;
 
-    float radius = CAMERA_COLLISION_RADIUS;
-    int gridX_min = static_cast<int>(floor((checkPos.x - radius) / CELL_SIZE));
-    int gridZ_min = static_cast<int>(floor((checkPos.z - radius) / CELL_SIZE));
-    int gridX_max = static_cast<int>(floor((checkPos.x + radius) / CELL_SIZE));
-    int gridZ_max = static_cast<int>(floor((checkPos.z + radius) / CELL_SIZE));
 
-    auto isCellWall = [&](int x, int z) {
-        if (x < 0 || x >= MAZE_WIDTH || z < 0 || z >= MAZE_HEIGHT) return true;
-        return maze[z][x].wall;
-        };
 
-    if (isCellWall(gridX_min, gridZ_min)) return true;
-    if (isCellWall(gridX_max, gridZ_min)) return true;
-    if (isCellWall(gridX_min, gridZ_max)) return true;
-    if (isCellWall(gridX_max, gridZ_max)) return true;
+
+
+
+bool checkWallCollision(glm::vec3 checkPos) {
+
+    int gridX = static_cast<int>(floor(checkPos.x / CELL_SIZE));
+
+    int gridZ = static_cast<int>(floor(checkPos.z / CELL_SIZE));
+
+    for (int z = gridZ - 1; z <= gridZ + 1; ++z) {
+
+        for (int x = gridX - 1; x <= gridX + 1; ++x) {
+
+            if (x >= 0 && x < MAZE_WIDTH && z >= 0 && z < MAZE_HEIGHT && maze[z][x].wall) {
+
+                float wallX = (x * CELL_SIZE) + (CELL_SIZE / 2.0f);
+
+                float wallZ = (z * CELL_SIZE) + (CELL_SIZE / 2.0f);
+
+                float closestX = std::max(wallX - CELL_SIZE / 2.0f, std::min(checkPos.x, wallX + CELL_SIZE / 2.0f));
+
+                float closestZ = std::max(wallZ - CELL_SIZE / 2.0f, std::min(checkPos.z, wallZ + CELL_SIZE / 2.0f));
+
+                if (glm::distance(glm::vec2(closestX, closestZ), glm::vec2(checkPos.x, checkPos.z)) < CAMERA_COLLISION_RADIUS) {
+
+                    return true;
+
+                }
+
+            }
+
+        }
+
+    }
 
     return false;
+
 }
 
-void setupMazeGeometryVAOs() {
-    float cubeVertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,
 
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,
 
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
+bool checkMinotaurCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
 
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
+    if (minotaur.currentState != Minotaur::State::FINISHED) {
 
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f,
+        float distance = glm::distance(glm::vec2(checkPos.x, checkPos.z), glm::vec2(minotaur.position.x, minotaur.position.z));
 
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f
+        if (distance < minotaur.collisionRadius + CAMERA_COLLISION_RADIUS) {
+
+            return true;
+
+        }
+
+    }
+
+    return false;
+
+}
+
+
+
+//nuovo
+
+bool checkCollision(glm::vec3 checkPos, const Minotaur& minotaur) {
+
+    // 1. Collisione con i muri
+
+    if (checkWallCollision(checkPos)) return true;
+
+
+
+    // 2. Collisione con il Minotauro
+
+    if (checkMinotaurCollision(checkPos, minotaur)) return true;
+
+
+
+    // 3. Collisione con i nemici delle stanze
+
+    for (const auto& room : dungeonRooms) {
+
+        if (room.state == DungeonRoom::RoomState::ACTIVE) {
+
+            for (const auto& enemy : room.enemies) {
+
+                if (enemy.health > 0) {
+
+                    if (glm::distance(glm::vec2(checkPos.x, checkPos.z), glm::vec2(enemy.position.x, enemy.position.z)) < enemy.collisionRadius + CAMERA_COLLISION_RADIUS) {
+
+                        return true;
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+
+    return false; // Nessuna collisione
+
+}
+
+
+
+// Funzione per caricare una texture da un file
+
+unsigned int loadtexture(const std::string& path, bool clampToEdge) {
+
+    unsigned int textureID;
+
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+
+    unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
+
+    if (data) {
+
+        GLenum format;
+
+        if (nrComponents == 1) format = GL_RED;
+
+        else if (nrComponents == 3) format = GL_RGB;
+
+        else if (nrComponents == 4) format = GL_RGBA;
+
+        else {
+
+            std::cerr << "Unsupported image format: " << path << std::endl;
+
+            stbi_image_free(data);
+
+            return 0;
+
+        }
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        GLint wrapMode = clampToEdge ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+
+    }
+
+    else {
+
+        std::cerr << "Texture failed to load: " << path << std::endl;
+
+        return 0;
+
+    }
+
+    return textureID;
+
+}
+
+
+
+// Funzione per caricare texture per i modelli 3D
+
+inline unsigned int TextureFromFile(const char* path, const std::string& directory, bool gamma) {
+
+    std::string filename = std::string(path);
+
+    filename = directory + '/' + filename;
+
+
+
+    unsigned int textureID;
+
+    glGenTextures(1, &textureID);
+
+
+
+    int width, height, nrComponents;
+
+    unsigned char* data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
+
+    if (data)
+
+    {
+
+        GLenum format = GL_RGB;
+
+        if (nrComponents == 1)
+
+            format = GL_RED;
+
+        else if (nrComponents == 3)
+
+            format = GL_RGB;
+
+        else if (nrComponents == 4)
+
+            format = GL_RGBA;
+
+
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+
+        stbi_image_free(data);
+
+    }
+
+    else
+
+    {
+
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+
+        stbi_image_free(data);
+
+    }
+
+
+
+    return textureID;
+
+}
+
+
+
+// Funzione per configurare la geometria del menu
+
+void setupMenuVAO() {
+
+    float menuVertices[] = {
+
+        // positions   // texCoords
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+
+        -1.0f, -1.0f,  0.0f, 0.0f,
+
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+         1.0f,  1.0f,  1.0f, 1.0f
+
     };
-    glGenBuffers(1, &VBO_cube_lit);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
 
-    glGenVertexArrays(1, &VAO_walls);
-    glBindVertexArray(VAO_walls);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glGenVertexArrays(1, &menuVAO);
+
+    glGenBuffers(1, &menuVBO);
+
+    glBindVertexArray(menuVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, menuVBO);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(menuVertices), &menuVertices, GL_STATIC_DRAW);
+
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
     glBindVertexArray(0);
 
+}
+
+
+
+void setupMazeGeometry() {
+
+    // --- PARTE 1: SETUP PAVIMENTO E SOFFITTO  ---
     float mazeW = (float)MAZE_WIDTH * CELL_SIZE;
     float mazeD = (float)MAZE_HEIGHT * CELL_SIZE;
     float textureRepeatX = mazeW / CELL_SIZE;
     float textureRepeatZ = mazeD / CELL_SIZE;
 
+    // Vertici del pavimento
     float floorVertices[] = {
-        mazeW, 0.0f, mazeD, 0.0f, 1.0f, 0.0f, textureRepeatX, textureRepeatZ,
-        mazeW, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f, textureRepeatX, 0.0f,
-        0.0f,  0.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f,  0.0f, mazeD, 0.0f, 1.0f, 0.0f, 0.0f, textureRepeatZ
+        mazeW, 0.0f, mazeD,    0.0f, 1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        mazeW, 0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f,  0.0f, 0.0f,     0.0f, 1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f,  0.0f, mazeD,    0.0f, 1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
     };
     unsigned int planeIndices[] = { 0, 1, 3, 1, 2, 3 };
     unsigned int VBO_floor, EBO_floor;
@@ -594,21 +2738,24 @@ void setupMazeGeometryVAOs() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_floor);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glBindVertexArray(0);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
 
+    // Vertici del soffitto
     float ceilingVertices[] = {
-        mazeW, WALL_HEIGHT, mazeD, 0.0f, -1.0f, 0.0f, textureRepeatX, textureRepeatZ,
-        0.0f,  WALL_HEIGHT, mazeD, 0.0f, -1.0f, 0.0f, 0.0f, textureRepeatZ,
-        0.0f,  WALL_HEIGHT, 0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-        mazeW, WALL_HEIGHT, 0.0f,  0.0f, -1.0f, 0.0f, textureRepeatX, 0.0f
+        mazeW, WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  textureRepeatX, textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        0.0f,  WALL_HEIGHT, mazeD,   0.0f, -1.0f, 0.0f,  0.0f,           textureRepeatZ, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        0.0f,  WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  0.0f,           0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
+        mazeW, WALL_HEIGHT, 0.0f,    0.0f, -1.0f, 0.0f,  textureRepeatX, 0.0f,           1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f
     };
-    unsigned int ceilingIndices[] = { 0, 3, 1, 1, 3, 2 };
     unsigned int VBO_ceiling, EBO_ceiling;
     glGenVertexArrays(1, &VAO_ceiling);
     glGenBuffers(1, &VBO_ceiling);
@@ -617,98 +2764,125 @@ void setupMazeGeometryVAOs() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO_ceiling);
     glBufferData(GL_ARRAY_BUFFER, sizeof(ceilingVertices), ceilingVertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_ceiling);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ceilingIndices), ceilingIndices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(planeIndices), planeIndices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glBindVertexArray(0);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
+    glEnableVertexAttribArray(4);
 
-    glGenVertexArrays(1, &VAO_lamp);
-    glBindVertexArray(VAO_lamp);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube_lit);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(0);
-}
+    // Pulisce i chunk dalla partita precedente
+    for (auto& chunk : mazeChunks) {
+        glDeleteVertexArrays(1, &chunk.VAO);
+        glDeleteBuffers(1, &chunk.VBO);
+    }
+    mazeChunks.clear();
 
-void setupWindowVAO() {
-    float transparentVertices[] = {
-          0.5f,  0.5f,  0.0f,  1.0f, 1.0f,
-         -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         -0.5f, -0.5f,  0.0f,  0.0f, 0.0f,
-         -0.5f, -0.5f,  0.0f,  0.0f, 0.0f,
-          0.5f, -0.5f,  0.0f,  1.0f, 0.0f,
-          0.5f,  0.5f,  0.0f,  1.0f, 1.0f
+    // Dati di base per un singolo cubo-muro 
+    float cubeVertices[] = {
+        // positions           // normals            // texcoords   // tangent            // bitangent
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,    0.0f, 0.0f, -1.0f
     };
-    glGenVertexArrays(1, &VAO_window);
-    glGenBuffers(1, &VBO_window);
-    glBindVertexArray(VAO_window);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_window);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
-}
 
-// --- MODIFICA: Nuova funzione per creare la geometria del menu ---
-void setupMenuVAO() {
-    float menuVertices[] = {
-        // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
+    const int CHUNK_SIZE = 10;
+    const int stride = 14; // 14 float per vertice (pos, normal, uv, tangent, bitangent)
 
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
-    glGenVertexArrays(1, &menuVAO);
-    glGenBuffers(1, &menuVBO);
-    glBindVertexArray(menuVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, menuVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(menuVertices), &menuVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glBindVertexArray(0);
-}
+    for (int y = 0; y < MAZE_HEIGHT; y += CHUNK_SIZE) {
+        for (int x = 0; x < MAZE_WIDTH; x += CHUNK_SIZE) {
 
-unsigned int loadtexture(const std::string& path, bool clampToEdge) {
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    int width, height, nrComponents;
-    unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
-    if (data) {
-        GLenum format;
-        if (nrComponents == 1) format = GL_RED;
-        else if (nrComponents == 3) format = GL_RGB;
-        else if (nrComponents == 4) format = GL_RGBA;
-        else {
-            std::cerr << "Formato immagine non supportato: " << path << std::endl;
-            stbi_image_free(data);
-            return 0;
+            std::vector<float> chunkVertices;
+            int wallCount = 0;
+
+            for (int cy = y; cy < y + CHUNK_SIZE && cy < MAZE_HEIGHT; ++cy) {
+                for (int cx = x; cx < x + CHUNK_SIZE && cx < MAZE_WIDTH; ++cx) {
+                    if (maze[cy][cx].wall) {
+                        wallCount++;
+                        glm::vec3 wallPos(cx * CELL_SIZE + CELL_SIZE / 2.0f, WALL_HEIGHT / 2.0f, cy * CELL_SIZE + CELL_SIZE / 2.0f);
+
+                        // Aggiungi i vertici del cubo, traslati alla posizione corretta
+                        for (int i = 0; i < 36 * stride; i += stride) {
+                            chunkVertices.push_back(cubeVertices[i] * CELL_SIZE + wallPos.x);     // Pos X
+                            chunkVertices.push_back(cubeVertices[i + 1] * WALL_HEIGHT + wallPos.y); // Pos Y
+                            chunkVertices.push_back(cubeVertices[i + 2] * CELL_SIZE + wallPos.z);   // Pos Z
+                            for (int j = 3; j < stride; ++j) {
+                                chunkVertices.push_back(cubeVertices[i + j]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (wallCount == 0) continue;
+
+            MazeChunk chunk;
+            chunk.vertexCount = wallCount * 36;
+            chunk.center = glm::vec3((x + CHUNK_SIZE / 2.0f) * CELL_SIZE, WALL_HEIGHT / 2.0f, (y + CHUNK_SIZE / 2.0f) * CELL_SIZE);
+            chunk.size = glm::vec3(CHUNK_SIZE * CELL_SIZE, WALL_HEIGHT, CHUNK_SIZE * CELL_SIZE);
+
+            glGenVertexArrays(1, &chunk.VAO);
+            glGenBuffers(1, &chunk.VBO);
+            glBindVertexArray(chunk.VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, chunk.VBO);
+            glBufferData(GL_ARRAY_BUFFER, chunkVertices.size() * sizeof(float), chunkVertices.data(), GL_STATIC_DRAW);
+
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(3 * sizeof(float)));
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(6 * sizeof(float)));
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(8 * sizeof(float)));
+            glEnableVertexAttribArray(4);
+            glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(11 * sizeof(float)));
+
+            glBindVertexArray(0);
+            mazeChunks.push_back(chunk);
         }
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        GLint wrapMode = (format == GL_RGBA && clampToEdge) ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        stbi_image_free(data);
     }
-    else {
-        std::cerr << "Errore caricamento texture: " << path << std::endl;
-        stbi_image_free(data);
-        return 0;
-    }
-    return textureID;
 }

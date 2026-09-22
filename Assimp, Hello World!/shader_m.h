@@ -13,6 +13,7 @@ class Shader
 public:
     unsigned int ID;
 
+    // Costruttore dello shader: compila e linka i vertici, frammenti e opzionalmente lo shader geometrico.
     Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
     {
         std::string vertexCode;
@@ -22,21 +23,27 @@ public:
         std::ifstream fShaderFile;
         std::ifstream gShaderFile;
 
+        // Abilita le eccezioni per gli oggetti ifstream
         vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         try
         {
+            // Apre i file shader
             vShaderFile.open(vertexPath);
             fShaderFile.open(fragmentPath);
             std::stringstream vShaderStream, fShaderStream;
+            // Legge il contenuto dei file nei buffer di stream
             vShaderStream << vShaderFile.rdbuf();
             fShaderStream << fShaderFile.rdbuf();
+            // Chiude i file
             vShaderFile.close();
             fShaderFile.close();
+            // Converte il contenuto degli stream in stringhe
             vertexCode = vShaderStream.str();
             fragmentCode = fShaderStream.str();
 
+            // Se è fornito un percorso per lo shader geometrico, leggilo
             if (geometryPath != nullptr)
             {
                 gShaderFile.open(geometryPath);
@@ -51,51 +58,59 @@ public:
             std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << vertexPath << " | " << fragmentPath;
             if (geometryPath != nullptr) std::cerr << " | " << geometryPath;
             std::cerr << std::endl;
+            // Potresti anche voler lanciare un'eccezione o terminare qui se un file shader è critico.
         }
 
         const char* vShaderCode = vertexCode.c_str();
         const char* fShaderCode = fragmentCode.c_str();
         unsigned int vertex, fragment;
 
+        // Compila lo shader dei vertici
         vertex = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertex, 1, &vShaderCode, NULL);
         glCompileShader(vertex);
-        checkCompileErrors(vertex, "VERTEX");
+        checkCompileErrors(vertex, "VERTEX"); // Controlla errori di compilazione
 
+        // Compila lo shader dei frammenti
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment, 1, &fShaderCode, NULL);
         glCompileShader(fragment);
-        checkCompileErrors(fragment, "FRAGMENT");
+        checkCompileErrors(fragment, "FRAGMENT"); // Controlla errori di compilazione
 
         unsigned int geometry;
+        // Compila lo shader geometrico se presente
         if (geometryPath != nullptr)
         {
             const char* gShaderCode = geometryCode.c_str();
             geometry = glCreateShader(GL_GEOMETRY_SHADER);
             glShaderSource(geometry, 1, &gShaderCode, NULL);
             glCompileShader(geometry);
-            checkCompileErrors(geometry, "GEOMETRY");
+            checkCompileErrors(geometry, "GEOMETRY"); // Controlla errori di compilazione
         }
 
+        // Crea il programma shader e allega gli shader compilati
         ID = glCreateProgram();
         glAttachShader(ID, vertex);
         glAttachShader(ID, fragment);
         if (geometryPath != nullptr)
             glAttachShader(ID, geometry);
         glLinkProgram(ID);
-        checkCompileErrors(ID, "PROGRAM");
+        checkCompileErrors(ID, "PROGRAM"); // Controlla errori di linkaggio del programma
 
+        // Elimina gli shader una volta linkati nel programma, non sono più necessari
         glDeleteShader(vertex);
         glDeleteShader(fragment);
         if (geometryPath != nullptr)
             glDeleteShader(geometry);
     }
 
+    // Attiva il programma shader
     void use()
     {
         glUseProgram(ID);
     }
 
+    // Funzioni utility per impostare i valori uniformi nello shader
     void setBool(const std::string& name, bool value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
@@ -156,7 +171,8 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
-private:
+    // Questa funzione è stata spostata da 'private:' a 'public:'
+    // per consentire al main.cpp di chiamarla direttamente per i controlli di diagnostica.
     void checkCompileErrors(GLuint shader, std::string type)
     {
         GLint success;
